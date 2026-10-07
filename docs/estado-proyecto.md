@@ -1,130 +1,52 @@
 # Estado del Proyecto - UMG Express
 
-## Estado general
-
-Proyecto en desarrollo.
-
----
-
-# Módulo 1 - Crow y autenticación
-
-* [ ] Configurar Crow.
-* [ ] Configurar CMake.
-* [ ] Verificar compilación inicial.
-* [ ] Crear estructura `Usuario`.
-* [ ] Implementar persistencia de `usuarios.dat`.
-* [ ] Implementar validación de credenciales.
-* [ ] Implementar `POST /v1/auth/login`.
-* [ ] Implementar creación de usuarios.
-* [ ] Probar respuestas JSON.
+## Información General
+- **Proyecto**: UMG Express (Sistema Logístico y de Paquetería)
+- **Fase Actual**: Fase 0 — Análisis y configuración
+- **Estado de la Fase**: Completada
+- **Próxima Fase**: Fase 1 — Base del proyecto (Pendiente de autorización)
 
 ---
 
-# Módulo 2 - Mantenimientos
+## 1. Bitácora de Fases
 
-## Sucursales
-
-* [ ] Estructura.
-* [ ] Inserción.
-* [ ] Consulta.
-* [ ] Modificación.
-* [ ] Baja lógica.
-* [ ] Endpoints.
-
-## Clientes
-
-* [ ] Estructura.
-* [ ] Inserción.
-* [ ] Consulta.
-* [ ] Modificación.
-* [ ] Baja lógica.
-* [ ] Endpoints.
-
-## Rutas
-
-* [ ] Estructura.
-* [ ] Inserción.
-* [ ] Consulta.
-* [ ] Modificación.
-* [ ] Baja lógica.
-* [ ] Endpoints.
-
-## Vehículos
-
-* [ ] Estructura.
-* [ ] Inserción.
-* [ ] Consulta.
-* [ ] Modificación.
-* [ ] Baja lógica.
-* [ ] Endpoints.
-
-## Pilotos
-
-* [ ] Estructura.
-* [ ] Inserción.
-* [ ] Consulta.
-* [ ] Modificación.
-* [ ] Baja lógica.
-* [ ] Endpoints.
-
-## Tarifas
-
-* [ ] Estructura.
-* [ ] Inserción.
-* [ ] Consulta.
-* [ ] Endpoints.
+### Fase 0 — Análisis y Configuración
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Análisis del entorno operativo (macOS Darwin 25.6.0 x86_64, zsh).
+  - Identificación del compilador C++ (`Apple clang version 17.0.0`).
+  - Verificación del soporte C++17 (`-std=c++17`).
+  - Identificación y verificación de dependencias de Crow (`crow` v1.2.0 y `asio` ubicados en `/usr/local/include`).
+  - Confirmación de la regla de NO usar CMake. Definición del método de compilación mediante script `build.sh`.
+  - Prueba empírica de compilación y ejecución de un servidor mínimo C++17 con Crow sin dependencias externas complejas.
+  - Corrección de referencias desactualizadas a CMake en la documentación (`docs/arquitectura.md`).
+  - Propuesta de estructura modular inicial del proyecto (`main.cpp`, `build.sh`, `include/`, `data/`, `docs/`).
+- **Pruebas Realizadas**:
+  - Detección de versión del compilador: `clang++ --version` (exitoso).
+  - Verificación de rutas de encabezados: `/usr/local/include/crow.h` y `/usr/local/include/asio.hpp` (exitoso).
+  - Compilación de prueba C++17 con Crow: `clang++ -std=c++17 -I/usr/local/include ...` (código de salida 0).
+  - Ejecución de ejecutable de prueba: salida `"Crow initialized successfully"` (exitoso).
+- **Decisiones Importantes**:
+  - Usar `clang++` con `-std=c++17` e `-I/usr/local/include`.
+  - Crear un script `build.sh` en lugar de utilizar CMake o Makefiles complejos.
+  - Utilizar directamente las librerías del sistema `/usr/local/include/crow.h` y `/usr/local/include/asio.hpp`.
+  - Organizar la persistencia binaria con archivos `.dat` de tamaño fijo en el directorio `data/`.
+- **Problemas Conocidos**:
+  - El archivo `crow.h` en la raíz estaba vacío (0 bytes); se utilizará la cabecera instalada por Homebrew (`/usr/local/include/crow.h`).
 
 ---
 
-# Módulo 3 - Transacciones
+## 2. Mapa de Fases del Proyecto
 
-## Guías
-
-* [ ] Estructura `Guia`.
-* [ ] Generación de número de guía.
-* [ ] Captura de dimensiones.
-* [ ] Cálculo de peso volumétrico.
-* [ ] Cálculo de peso facturable.
-* [ ] Cálculo de costo.
-* [ ] Persistencia en `guias.dat`.
-* [ ] Endpoint.
-
-## Despacho
-
-* [ ] Validación de vehículo.
-* [ ] Validación de peso.
-* [ ] Validación de volumen.
-* [ ] Acumulación de carga.
-* [ ] Rechazo por exceso.
-* [ ] Endpoint.
-
----
-
-# Módulo 4 - Reportes
-
-* [ ] Rastreo de guía.
-* [ ] Manifiesto por vehículo.
-* [ ] Liquidación.
-* [ ] Endpoints.
-
----
-
-# Módulo 5 - React
-
-* [ ] Configurar frontend.
-* [ ] Conectar login.
-* [ ] Conectar mantenimientos.
-* [ ] Conectar transacciones.
-* [ ] Conectar reportes.
-
----
-
-# Verificación
-
-* [ ] Compilación sin errores.
-* [ ] Pruebas de endpoints.
-* [ ] Pruebas de archivos `.dat`.
-* [ ] Pruebas de baja lógica.
-* [ ] Pruebas de validaciones.
-* [ ] Pruebas de capacidad vehicular.
-* [ ] Pruebas de integración con React.
+| Fase | Descripción | Estado |
+| :--- | :--- | :--- |
+| **Fase 0** | Análisis y configuración | **Completada** |
+| **Fase 1** | Base del proyecto (`main.cpp`, `build.sh`, verificación de servidor) | Pendiente |
+| **Fase 2** | Estructuras y persistencia (`structs.h`, operaciones `.dat`) | Pendiente |
+| **Fase 3** | Autenticación (`usuarios.dat`, login, roles) | Pendiente |
+| **Fase 4** | CRUD de catálogos (Sucursales, Clientes, Rutas, Vehículos, Pilotos, Tarifas) | Pendiente |
+| **Fase 5** | Transacciones (Guías, Despacho, validaciones de peso/volumen) | Pendiente |
+| **Fase 6** | Reportes (Rastreo, Manifiestos, Liquidación) | Pendiente |
+| **Fase 7** | API completa e integración con React | Pendiente |
+| **Fase 8** | Pruebas y estabilización | Pendiente |
+| **Fase 9** | Documentación y revisión final | Pendiente |
