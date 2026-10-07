@@ -1,199 +1,65 @@
 # Arquitectura - UMG Express
 
-## 1. Estructura actual
+## 1. Estructura del Proyecto (Fase 3)
 
 ```text
-umg_express/
-├── crow.h
-├── main.cpp
-├── CMakeLists.txt
-├── include/
-│   ├── structs.h
-│   ├── auth.h
-│   ├── sucursales.h
-│   ├── clientes.h
-│   ├── rutas.h
-│   ├── vehiculos.h
-│   ├── pilotos.h
-│   ├── tarifas.h
-│   ├── transacciones.h
-│   └── reportes.h
-└── data/
-    ├── usuarios.dat
-    ├── sucursales.dat
-    ├── clientes.dat
-    ├── rutas.dat
-    ├── vehiculos.dat
-    ├── pilotos.dat
-    ├── tarifas.dat
-    └── guias.dat
+umgExpress/
+├── main.cpp            # Punto de entrada HTTP y servidor Crow (rutas base y /v1/auth/*)
+├── build.sh            # Script de compilación C++17 (sin CMake)
+├── server              # Ejecutable principal del servidor
+├── test_persistence    # Suite de pruebas de persistencia .dat
+├── test_auth           # Suite de pruebas de autenticación y usuarios
+├── include/            # Encabezados modulares
+│   ├── structs.h       # Estructuras de tamaño fijo para archivos binarios .dat
+│   ├── persistence.h   # Motor genérico de persistencia binaria (stdio)
+│   ├── auth.h          # Módulo de Autenticación y Usuarios
+│   ├── sucursales.h    # Módulo de Sucursales (Próximas fases)
+│   ├── clientes.h      # Módulo de Clientes (Próximas fases)
+│   ├── rutas.h         # Módulo de Rutas (Próximas fases)
+│   ├── vehiculos.h     # Módulo de Vehículos (Próximas fases)
+│   ├── pilotos.h       # Módulo de Pilotos (Próximas fases)
+│   ├── tarifas.h       # Módulo de Tarifas (Próximas fases)
+│   ├── transacciones.h # Módulo de Transacciones (Próximas fases)
+│   └── reportes.h      # Módulo de Reportes (Próximas fases)
+├── tests/              # Pruebas unitarias e integración
+│   ├── test_persistence.cpp # Pruebas de almacenamiento .dat
+│   └── test_auth.cpp        # Pruebas de autenticación y usuarios
+├── data/               # Directorio de persistencia binaria .dat
+│   ├── usuarios.dat
+│   ├── sucursales.dat
+│   ├── clientes.dat
+│   ├── rutas.dat
+│   ├── vehiculos.dat
+│   ├── pilotos.dat
+│   ├── tarifas.dat
+│   └── guias.dat
+└── docs/               # Documentación viva del proyecto
+    ├── arquitectura.md
+    ├── autenticacion.md
+    ├── estructura-dat.md
+    ├── rutas-api.md
+    ├── reglas-negocio.md
+    └── estado-proyecto.md
 ```
 
 ---
 
-## 2. `main.cpp`
+## 2. Capa de Autenticación y Negocio (`include/auth.h`)
 
-Es el punto de entrada de la aplicación.
-
-Responsabilidades:
-
-* Crear la aplicación Crow.
-* Configurar el servidor.
-* Registrar endpoints.
-* Iniciar el servidor.
-
-No debe contener toda la lógica del negocio.
+La lógica de negocio de usuarios está encapsulada en el namespace `Auth`:
+- Validaciones de roles (`Administrador`, `Operador`, `Auditor`).
+- Validación de duplicidad por `username`.
+- Autenticación con verificación de contraseña y estado `activo`.
+- Inicialización automática del usuario `admin` inicial si la base binaria está vacía.
 
 ---
 
-## 3. `crow.h`
+## 3. Servidor HTTP y Endpoints API (`main.cpp`)
 
-Cabecera utilizada para integrar el framework Crow.
-
-Permite:
-
-* Crear el servidor HTTP.
-* Definir rutas.
-* Procesar solicitudes HTTP.
-* Generar respuestas JSON.
-
----
-
-## 4. `include/structs.h`
-
-Contiene las estructuras utilizadas por el sistema.
-
-Las estructuras que se almacenan en archivos `.dat` deben utilizar campos de tamaño fijo.
-
----
-
-## 5. Módulos
-
-### `auth.h`
-
-Autenticación y usuarios.
-
-Archivo:
-
-```text
-data/usuarios.dat
-```
-
-### `sucursales.h`
-
-CRUD de sucursales.
-
-Archivo:
-
-```text
-data/sucursales.dat
-```
-
-### `clientes.h`
-
-CRUD de clientes.
-
-Archivo:
-
-```text
-data/clientes.dat
-```
-
-### `rutas.h`
-
-CRUD de rutas.
-
-Archivo:
-
-```text
-data/rutas.dat
-```
-
-### `vehiculos.h`
-
-CRUD de vehículos.
-
-Archivo:
-
-```text
-data/vehiculos.dat
-```
-
-### `pilotos.h`
-
-CRUD de pilotos.
-
-Archivo:
-
-```text
-data/pilotos.dat
-```
-
-### `tarifas.h`
-
-Gestión de tarifas.
-
-Archivo:
-
-```text
-data/tarifas.dat
-```
-
-### `transacciones.h`
-
-Operaciones transaccionales.
-
-Incluye:
-
-* Guías.
-* Cálculo de peso volumétrico.
-* Costos.
-* Despacho.
-* Capacidad vehicular.
-
-Archivo principal:
-
-```text
-data/guias.dat
-```
-
-### `reportes.h`
-
-Consultas y reportes:
-
-* Rastreo.
-* Manifiestos.
-* Liquidaciones.
-
----
-
-## 6. Flujo general
-
-```text
-React
-  |
-  | HTTP / JSON
-  v
-Crow
-  |
-  v
-main.cpp / endpoints
-  |
-  v
-Funciones del módulo correspondiente
-  |
-  v
-Archivos .dat
-```
-
----
-
-## 7. Principio arquitectónico
-
-La API debe encargarse de recibir y responder solicitudes.
-
-Las funciones de los módulos deben encargarse de la lógica correspondiente.
-
-La persistencia debe realizarse directamente mediante archivos binarios.
-
-No introducir bases de datos externas.
+- Framework: **Crow HTTP C++ Framework**
+- Binding: `127.0.0.1:18080`
+- Endpoints activos:
+  - `GET /` -> Estado del servidor.
+  - `GET /v1/health` -> Estado del servicio y persistencia.
+  - `POST /v1/auth/login` -> Validación de credenciales.
+  - `POST /v1/auth/usuarios` -> Registro de nuevos usuarios.

@@ -354,23 +354,165 @@ No documentar funcionalidades como terminadas si todavía no están implementada
 
 ---
 
-# 15. Desarrollo incremental
+## Desarrollo por fases
 
-No intentar escribir todo el proyecto sin verificarlo.
+El proyecto debe desarrollarse estrictamente por fases.
 
-Trabajar por módulos.
+**Regla fundamental:** nunca implementes todo el proyecto de una sola vez.
 
-Después de cada módulo:
+Debes trabajar únicamente en la fase que haya sido solicitada o autorizada explícitamente.
 
-1. Compilar.
-2. Ejecutar pruebas.
-3. Corregir errores.
-4. Actualizar documentación.
-5. Continuar con el siguiente módulo.
+### Flujo obligatorio de cada fase
 
-El agente debe decidir el orden óptimo de implementación.
+Para cada fase:
 
----
+1. Analiza qué necesita la fase actual.
+2. Revisa el código y archivos existentes.
+3. Planifica internamente los cambios necesarios.
+4. Implementa únicamente lo correspondiente a la fase actual.
+5. Compila el proyecto.
+6. Ejecuta las pruebas necesarias.
+7. Corrige los errores encontrados relacionados con la fase actual.
+8. Actualiza la documentación correspondiente.
+9. Actualiza `docs/estado-proyecto.md`.
+10. Presenta un resumen de:
+
+* qué se implementó;
+* qué archivos se crearon o modificaron;
+* qué pruebas se realizaron;
+* si la compilación fue exitosa;
+* problemas pendientes, si existen.
+
+11. **Detente.**
+
+### No avanzar automáticamente
+
+Al terminar una fase, NO debes comenzar la siguiente aunque sepas qué debe hacerse.
+
+Debes esperar una nueva instrucción del usuario para continuar.
+
+Por ejemplo:
+
+> "Fase 1 completada. Esperando autorización para continuar con la Fase 2."
+
+El usuario podrá indicar:
+
+> "Continúa con la siguiente fase."
+
+Solo entonces podrás comenzar la siguiente fase.
+
+### Fases iniciales del proyecto
+
+El desarrollo deberá organizarse inicialmente de la siguiente manera:
+
+**Fase 0 — Análisis y configuración**
+
+* Analizar el entorno.
+* Identificar compilador disponible.
+* Determinar cómo utilizar/configurar Crow.
+* Determinar cómo compilar C++17.
+* No utilizar CMake.
+* Definir la estructura inicial del proyecto.
+* No implementar todavía toda la funcionalidad.
+
+**Fase 1 — Base del proyecto**
+
+* Crear la estructura necesaria.
+* Configuración inicial de C++17 y Crow.
+* Crear el punto de entrada.
+* Verificar que el servidor pueda compilar y ejecutarse.
+* Crear una base mínima funcional.
+
+**Fase 2 — Estructuras y persistencia**
+
+* Diseñar las estructuras de datos.
+* Implementar persistencia mediante archivos binarios `.dat`.
+* Implementar las operaciones de lectura/escritura necesarias.
+* Probar la persistencia.
+
+**Fase 3 — Autenticación**
+
+* Implementar usuarios.
+* Login.
+* Registro.
+* Validaciones correspondientes.
+
+**Fase 4 — CRUD de catálogos**
+Implementar progresivamente los CRUD de:
+
+* sucursales;
+* clientes;
+* rutas;
+* vehículos;
+* pilotos;
+* tarifas.
+
+**Fase 5 — Transacciones**
+
+* Creación de guías.
+* Despacho.
+* Validaciones de peso y volumen.
+* Aplicación de las reglas de negocio.
+
+**Fase 6 — Reportes**
+
+* Rastreo.
+* Manifiestos.
+* Liquidaciones.
+
+**Fase 7 — API completa e integración**
+
+* Verificar todos los endpoints.
+* Revisar respuestas JSON.
+* Revisar validaciones HTTP.
+* Preparar la API para el frontend React.
+
+**Fase 8 — Pruebas y estabilización**
+
+* Pruebas funcionales.
+* Pruebas de errores.
+* Pruebas de persistencia.
+* Pruebas de reglas de negocio.
+* Corrección de errores.
+
+**Fase 9 — Documentación y revisión final**
+
+* Revisar toda la documentación.
+* Verificar que la documentación corresponda al código real.
+* Revisar estructura y claridad del proyecto.
+* Preparar el proyecto para presentación académica.
+
+### Autonomía dentro de una fase
+
+Dentro de la fase autorizada, trabaja de forma autónoma.
+
+No preguntes qué archivo crear, dónde colocar una función o cómo solucionar errores normales de implementación.
+
+Toma esas decisiones siguiendo las reglas de este documento.
+
+Sin embargo, debes detenerte y consultar al usuario si una decisión:
+
+* cambia los requisitos académicos;
+* cambia significativamente el alcance;
+* introduce una tecnología no contemplada;
+* reemplaza una tecnología requerida;
+* puede causar pérdida importante de información;
+* requiere una decisión que el usuario debería tomar explícitamente.
+
+### Estado de las fases
+
+`docs/estado-proyecto.md` debe mantener claramente:
+
+* Fase actual.
+* Estado: pendiente / en progreso / completada / bloqueada.
+* Trabajo realizado.
+* Pruebas realizadas.
+* Problemas conocidos.
+* Decisiones importantes.
+* Próxima fase pendiente.
+
+Una fase solo puede marcarse como **completada** después de compilar y probar satisfactoriamente lo correspondiente a dicha fase.
+
 
 # 16. Pruebas
 
