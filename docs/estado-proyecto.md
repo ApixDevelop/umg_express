@@ -2,9 +2,10 @@
 
 ## Información General
 - **Proyecto**: UMG Express (Sistema Logístico y de Paquetería)
-- **Fase Actual**: Fase 3 — Autenticación y usuarios
+- **Fase Actual**: Fase 4A — CRUD de Sucursales y Clientes
 - **Estado de la Fase**: Completada
-- **Próxima Fase**: Fase 4 — CRUD de catálogos (Pendiente de autorización)
+- **Próxima Fase**: Fase 4B — CRUD de Rutas, Vehículos, Pilotos y Tarifas (Pendiente de autorización)
+- **Rama Git**: `feature/clients-and-agencies`
 
 ---
 
@@ -16,7 +17,6 @@
   - Análisis del entorno operativo (macOS Darwin 25.6.0 x86_64, zsh).
   - Identificación del compilador C++ (`Apple clang version 17.0.0`).
   - Verificación del soporte C++17 (`-std=c++17`).
-  - Identificación y verificación de dependencias de Crow (`crow` y `asio` en `/usr/local/include`).
   - Definición del método de compilación sin CMake mediante `build.sh`.
 
 ### Fase 1 — Base del Proyecto
@@ -30,38 +30,48 @@
 - **Estado**: COMPLETADA
 - **Trabajo Realizado**:
   - Diseño de 8 estructuras de datos de tamaño fijo en `include/structs.h`.
-  - Motor genérico de persistencia binaria en `include/persistence.h` usando C stdio (`fopen`, `fclose`, `fread`, `fwrite`, `fseek`, `ftell`).
+  - Motor genérico de persistencia binaria en `include/persistence.h` usando C stdio.
   - Suite de pruebas unitarias en `tests/test_persistence.cpp`.
 
 ### Fase 3 — Autenticación y Usuarios
 - **Estado**: COMPLETADA
 - **Trabajo Realizado**:
-  - Implementación del módulo de lógica de negocio para usuarios y autenticación en `include/auth.h`.
-  - Definición y soporte para los 3 roles requeridos: `Administrador`, `Operador` y `Auditor`.
-  - Implementación de validación de campos obligatorios, restricciones de longitud y prevención de usuarios duplicados por `username`.
-  - Implementación de la función `inicializarUsuarioAdminPorDefecto` que crea la cuenta inicial `admin` / `admin123` si `data/usuarios.dat` no contiene usuarios activos.
-  - Implementación de los endpoints REST en Crow (`main.cpp`):
-    - `POST /v1/auth/login`: Autenticación con verificación de contraseña y comprobación de estado `activo = true`. Devuelve respuestas JSON estandarizadas (200 OK en éxito, 401 Unauthorized en credenciales/usuario inactivo).
-    - `POST /v1/auth/usuarios`: Registro de nuevos usuarios con auto-incremento de ID y validaciones (201 Created en éxito, 409 Conflict en duplicados, 400 Bad Request en datos/roles inválidos).
-  - Implementación de la suite de pruebas unitarias en `tests/test_auth.cpp`.
-  - Creación de la documentación oficial en `docs/autenticacion.md`.
-  - Actualización de `docs/arquitectura.md` y `docs/estado-proyecto.md`.
+  - Módulo `include/auth.h` con funciones de autenticación y roles.
+  - Endpoints `POST /v1/auth/login` y `POST /v1/auth/usuarios`.
+  - Suite de pruebas unitarias en `tests/test_auth.cpp`.
+  - Documentación en `docs/autenticacion.md`.
+
+### Fase 4A — CRUD de Sucursales y Clientes
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Implementación de la lógica de negocio y persistencia para Sucursales en `include/sucursales.h`.
+    - Operaciones: Crear, Listar activos, Consultar por ID, Actualizar por ID y Baja lógica (`activo = false`).
+    - Validaciones: Campos requeridos, restricciones de longitud y prevención de nombres duplicados.
+  - Implementación de la lógica de negocio y persistencia para Clientes en `include/clientes.h`.
+    - Operaciones: Crear, Listar activos, Consultar por ID, Actualizar por ID y Baja lógica (`activo = false`).
+    - Validaciones: Campos requeridos, restricciones de longitud y prevención de NITs duplicados.
+  - Implementación de endpoints REST en Crow (`main.cpp`):
+    - `GET /v1/sucursales` (200 OK)
+    - `GET /v1/sucursales/{id}` (200 OK / 404 Not Found)
+    - `POST /v1/sucursales` (201 Created / 409 Conflict / 400 Bad Request)
+    - `PUT /v1/sucursales/{id}` (200 OK / 404 Not Found / 409 Conflict)
+    - `DELETE /v1/sucursales/{id}` (200 OK / 404 Not Found)
+    - `GET /v1/clientes` (200 OK)
+    - `GET /v1/clientes/{id}` (200 OK / 404 Not Found)
+    - `POST /v1/clientes` (201 Created / 409 Conflict / 400 Bad Request)
+    - `PUT /v1/clientes/{id}` (200 OK / 404 Not Found / 409 Conflict)
+    - `DELETE /v1/clientes/{id}` (200 OK / 404 Not Found)
+  - Suite de pruebas unitarias en `tests/test_sucursales_clientes.cpp`.
+  - Documentación técnica actualizada en `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
 - **Pruebas Realizadas**:
-  - Registro de usuarios con roles válidos (`Administrador`, `Operador`, `Auditor`).
-  - Rechazo de nombres de usuario duplicados (`409 Conflict`).
-  - Rechazo de roles no contemplados (`400 Bad Request`).
-  - Autenticación exitosa (`200 OK`).
-  - Rechazo por contraseña errónea (`401 Unauthorized`).
-  - Rechazo por usuario inactivo (`activo = false`).
-  - Persistencia de usuarios tras simular reinicio del sistema de archivos.
-  - Peticiones HTTP reales ejecutadas mediante `curl` a `/v1/auth/login` y `/v1/auth/usuarios`.
+  - Pruebas unitarias completas ejecutando `./test_sucursales_clientes` (0 errores).
+  - Peticiones HTTP reales ejecutadas mediante `curl` a todos los verbos HTTP (`GET`, `POST`, `PUT`, `DELETE`) para `/v1/sucursales` y `/v1/clientes`.
   - Recompilación limpia verificada con `./build.sh`.
 - **Decisiones Importantes**:
-  - Mantener las contraseñas en plano/hash directo en la estructura de 64 bytes adecuada para un ámbito académico sin agregar librerías criptográficas externas innecesarias.
-  - Crear automáticamente la cuenta `admin` / `admin123` si la base binaria está limpia al arrancar el servidor.
-  - Mantener el control de roles como una propiedad del usuario sin agregar sistemas complejos de permisos.
+  - Encapsular las validaciones de negocio en `include/sucursales.h` e `include/clientes.h` para desacoplar las rutas HTTP de Crow de las reglas de datos.
+  - Mantener los nombres de sucursal y NITs de clientes como valores únicos para evitar colisiones lógicas en el sistema.
 - **Problemas Pendientes**:
-  - Ninguno. El módulo de autenticación funciona correctamente.
+  - Ninguno. La Fase 4A está 100% probada y funcional.
 
 ---
 
@@ -73,7 +83,8 @@
 | **Fase 1** | Base del proyecto (`main.cpp`, `build.sh`, verificación de servidor) | **Completada** |
 | **Fase 2** | Estructuras y persistencia (`structs.h`, `persistence.h`, `.dat`) | **Completada** |
 | **Fase 3** | Autenticación y usuarios (`auth.h`, `POST /v1/auth/login`, `POST /v1/auth/usuarios`) | **Completada** |
-| **Fase 4** | CRUD de catálogos (Sucursales, Clientes, Rutas, Vehículos, Pilotos, Tarifas) | Pendiente |
+| **Fase 4A** | CRUD de Sucursales y Clientes (`include/sucursales.h`, `include/clientes.h`, API REST) | **Completada** |
+| **Fase 4B** | CRUD de Rutas, Vehículos, Pilotos y Tarifas | Pendiente |
 | **Fase 5** | Transacciones (Guías, Despacho, validaciones de peso/volumen) | Pendiente |
 | **Fase 6** | Reportes (Rastreo, Manifiestos, Liquidación) | Pendiente |
 | **Fase 7** | API completa e integración con React | Pendiente |
