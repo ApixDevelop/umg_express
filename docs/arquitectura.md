@@ -1,24 +1,28 @@
 # Arquitectura - UMG Express
 
-## 1. Estructura del Proyecto (Fase 1)
+## 1. Estructura del Proyecto (Fase 2)
 
 ```text
 umgExpress/
-├── main.cpp            # Punto de entrada HTTP y configuración de servidor Crow
+├── main.cpp            # Punto de entrada HTTP y servidor Crow
 ├── build.sh            # Script de compilación C++17 (sin CMake)
-├── server              # Ejecutable binario generado por build.sh
-├── include/            # Encabezados de módulos (.h)
+├── server              # Ejecutable principal del servidor
+├── test_persistence    # Ejecutable de la suite de pruebas de persistencia
+├── include/            # Encabezados modulares
 │   ├── structs.h       # Estructuras de tamaño fijo para archivos binarios .dat
-│   ├── auth.h          # Módulo de Autenticación
-│   ├── sucursales.h    # Módulo de Sucursales
-│   ├── clientes.h      # Módulo de Clientes
-│   ├── rutas.h         # Módulo de Rutas
-│   ├── vehiculos.h     # Módulo de Vehículos
-│   ├── pilotos.h       # Módulo de Pilotos
-│   ├── tarifas.h       # Módulo de Tarifas
-│   ├── transacciones.h # Módulo de Transacciones
-│   └── reportes.h      # Módulo de Reportes
-├── data/               # Directorio para archivos binarios .dat
+│   ├── persistence.h   # Motor genérico de persistencia binaria (stdio)
+│   ├── auth.h          # Módulo de Autenticación (Próximas fases)
+│   ├── sucursales.h    # Módulo de Sucursales (Próximas fases)
+│   ├── clientes.h      # Módulo de Clientes (Próximas fases)
+│   ├── rutas.h         # Módulo de Rutas (Próximas fases)
+│   ├── vehiculos.h     # Módulo de Vehículos (Próximas fases)
+│   ├── pilotos.h       # Módulo de Pilotos (Próximas fases)
+│   ├── tarifas.h       # Módulo de Tarifas (Próximas fases)
+│   ├── transacciones.h # Módulo de Transacciones (Próximas fases)
+│   └── reportes.h      # Módulo de Reportes (Próximas fases)
+├── tests/              # Pruebas unitarias e integración
+│   └── test_persistence.cpp # Suite de pruebas de persistencia .dat
+├── data/               # Directorio de persistencia binaria .dat
 │   ├── usuarios.dat
 │   ├── sucursales.dat
 │   ├── clientes.dat
@@ -37,48 +41,24 @@ umgExpress/
 
 ---
 
-## 2. Punto de Entrada (`main.cpp`)
+## 2. Capa de Persistencia Binaria (`include/persistence.h`)
 
-Es el archivo principal de la aplicación.
+La persistencia del proyecto no utiliza bases de datos relacionales ni NoSQL (sin SQL, SQLite, MongoDB ni ORMs).
 
-Responsabilidades en la Fase 1:
-* Instanciar la aplicación HTTP utilizando el framework **Crow**.
-* Enlazar el servidor a `127.0.0.1:18080`.
-* Configurar las rutas HTTP base (`GET /` y `GET /v1/health`).
-* Responder solicitudes con formato JSON (`crow::json::wvalue`).
-* Iniciar el bucle multihilo del servidor web.
+Implementa acceso directo mediante stdio de C/C++:
+- `fopen()` / `fclose()`
+- `fread()` / `fwrite()`
+- `fseek()` / `ftell()`
 
----
-
-## 3. Sistema de Compilación (`build.sh`)
-
-No se utiliza CMake ni `CMakeLists.txt`.
-
-La compilación se realiza directamente invocando `clang++` con el estándar C++17:
-
-```bash
-clang++ -std=c++17 -I/usr/local/include -Iinclude main.cpp -o server
-```
+Cada entidad se almacena en su propio archivo `.dat` con registros de tamaño constante definidos en `include/structs.h`.
 
 ---
 
-## 4. Integración de Dependencias
+## 3. Servidor HTTP y API Base (`main.cpp`)
 
-- **Crow HTTP Framework**: Cabecera principal instalada en `/usr/local/include/crow.h`.
-- **Asio**: Cabeceras asíncronas standalone en `/usr/local/include/asio.hpp`.
-
----
-
-## 5. Flujo de Comunicación HTTP
-
-```text
-Cliente HTTP / Browser / cURL / React
-                 |
-                 | HTTP GET / JSON
-                 v
-            Servidor Crow
-            (main.cpp:18080)
-                 |
-                 v
-          Respuesta JSON 200 OK
-```
+- Framework: **Crow HTTP C++ Framework**
+- Binding: `127.0.0.1:18080`
+- Al iniciar, el servidor verifica e inicializa automáticamente todos los archivos `.dat` en la carpeta `data/`.
+- Rutas actuales:
+  - `GET /` -> Estado de bienvenida y número de fase activa.
+  - `GET /v1/health` -> Verificación de salud y estado de inicialización de archivos `.dat`.
