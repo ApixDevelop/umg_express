@@ -1,17 +1,18 @@
 # Arquitectura - UMG Express
 
-## 1. Estructura del Proyecto (Fase 2)
+## 1. Estructura del Proyecto (Fase 3)
 
 ```text
 umgExpress/
-├── main.cpp            # Punto de entrada HTTP y servidor Crow
+├── main.cpp            # Punto de entrada HTTP y servidor Crow (rutas base y /v1/auth/*)
 ├── build.sh            # Script de compilación C++17 (sin CMake)
 ├── server              # Ejecutable principal del servidor
-├── test_persistence    # Ejecutable de la suite de pruebas de persistencia
+├── test_persistence    # Suite de pruebas de persistencia .dat
+├── test_auth           # Suite de pruebas de autenticación y usuarios
 ├── include/            # Encabezados modulares
 │   ├── structs.h       # Estructuras de tamaño fijo para archivos binarios .dat
 │   ├── persistence.h   # Motor genérico de persistencia binaria (stdio)
-│   ├── auth.h          # Módulo de Autenticación (Próximas fases)
+│   ├── auth.h          # Módulo de Autenticación y Usuarios
 │   ├── sucursales.h    # Módulo de Sucursales (Próximas fases)
 │   ├── clientes.h      # Módulo de Clientes (Próximas fases)
 │   ├── rutas.h         # Módulo de Rutas (Próximas fases)
@@ -21,7 +22,8 @@ umgExpress/
 │   ├── transacciones.h # Módulo de Transacciones (Próximas fases)
 │   └── reportes.h      # Módulo de Reportes (Próximas fases)
 ├── tests/              # Pruebas unitarias e integración
-│   └── test_persistence.cpp # Suite de pruebas de persistencia .dat
+│   ├── test_persistence.cpp # Pruebas de almacenamiento .dat
+│   └── test_auth.cpp        # Pruebas de autenticación y usuarios
 ├── data/               # Directorio de persistencia binaria .dat
 │   ├── usuarios.dat
 │   ├── sucursales.dat
@@ -33,6 +35,7 @@ umgExpress/
 │   └── guias.dat
 └── docs/               # Documentación viva del proyecto
     ├── arquitectura.md
+    ├── autenticacion.md
     ├── estructura-dat.md
     ├── rutas-api.md
     ├── reglas-negocio.md
@@ -41,24 +44,22 @@ umgExpress/
 
 ---
 
-## 2. Capa de Persistencia Binaria (`include/persistence.h`)
+## 2. Capa de Autenticación y Negocio (`include/auth.h`)
 
-La persistencia del proyecto no utiliza bases de datos relacionales ni NoSQL (sin SQL, SQLite, MongoDB ni ORMs).
-
-Implementa acceso directo mediante stdio de C/C++:
-- `fopen()` / `fclose()`
-- `fread()` / `fwrite()`
-- `fseek()` / `ftell()`
-
-Cada entidad se almacena en su propio archivo `.dat` con registros de tamaño constante definidos en `include/structs.h`.
+La lógica de negocio de usuarios está encapsulada en el namespace `Auth`:
+- Validaciones de roles (`Administrador`, `Operador`, `Auditor`).
+- Validación de duplicidad por `username`.
+- Autenticación con verificación de contraseña y estado `activo`.
+- Inicialización automática del usuario `admin` inicial si la base binaria está vacía.
 
 ---
 
-## 3. Servidor HTTP y API Base (`main.cpp`)
+## 3. Servidor HTTP y Endpoints API (`main.cpp`)
 
 - Framework: **Crow HTTP C++ Framework**
 - Binding: `127.0.0.1:18080`
-- Al iniciar, el servidor verifica e inicializa automáticamente todos los archivos `.dat` en la carpeta `data/`.
-- Rutas actuales:
-  - `GET /` -> Estado de bienvenida y número de fase activa.
-  - `GET /v1/health` -> Verificación de salud y estado de inicialización de archivos `.dat`.
+- Endpoints activos:
+  - `GET /` -> Estado del servidor.
+  - `GET /v1/health` -> Estado del servicio y persistencia.
+  - `POST /v1/auth/login` -> Validación de credenciales.
+  - `POST /v1/auth/usuarios` -> Registro de nuevos usuarios.
