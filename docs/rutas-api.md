@@ -1,234 +1,185 @@
 # API REST - UMG Express
 
-## 1. Información general
+## 1. Información General
 
-La API utiliza Crow como framework HTTP.
+La API utiliza Crow como framework HTTP en C++17.
+Todas las respuestas utilizan el formato JSON y se comunican a través del puerto `18080` (enlace local `127.0.0.1`).
 
-Todos los endpoints utilizan el prefijo:
-
+Prefijo global de API:
 ```text
 /v1/
 ```
 
-Las solicitudes y respuestas utilizan JSON cuando corresponda.
+---
+
+## 2. Autenticación (`/v1/auth`)
+
+### POST `/v1/auth/login`
+Valida las credenciales de usuario.
+- **Request Body**:
+  ```json
+  { "username": "admin", "password": "admin123" }
+  ```
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "mensaje": "Autenticación exitosa",
+    "usuario": { "id": 1, "username": "admin", "nombre": "Administrador Inicial", "rol": "Administrador" }
+  }
+  ```
+
+### POST `/v1/auth/usuarios`
+Registra un nuevo usuario en `data/usuarios.dat`.
+- **Request Body**:
+  ```json
+  { "username": "operador1", "password": "pass", "nombre": "Carlos Gómez", "rol": "Operador" }
+  ```
+- **Response `201 Created`**:
+  ```json
+  {
+    "success": true,
+    "mensaje": "Usuario creado exitosamente",
+    "usuario": { "id": 2, "username": "operador1", "nombre": "Carlos Gómez", "rol": "Operador" }
+  }
+  ```
 
 ---
 
-# 2. Autenticación
+## 3. Sucursales (`/v1/sucursales`) - Implementado en Fase 4A
 
-## POST `/v1/auth/login`
+### GET `/v1/sucursales`
+Obtiene la lista de todas las sucursales activas.
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "sucursales": [
+      { "id": 1, "nombre": "Sucursal Central", "direccion": "Zona 1, Guatemala", "telefono": "2222-1000" }
+    ]
+  }
+  ```
 
-Valida las credenciales del usuario almacenado en:
+### GET `/v1/sucursales/{id}`
+Obtiene una sucursal específica por su ID.
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "sucursal": { "id": 1, "nombre": "Sucursal Central", "direccion": "Zona 1, Guatemala", "telefono": "2222-1000" }
+  }
+  ```
+- **Response `404 Not Found`**:
+  ```json
+  { "success": false, "mensaje": "Sucursal con ID 1 no encontrada o inactiva" }
+  ```
 
-```text
-data/usuarios.dat
-```
+### POST `/v1/sucursales`
+Crea una nueva sucursal con validación de nombre único.
+- **Request Body**:
+  ```json
+  { "nombre": "Sucursal Norte", "direccion": "Zona 18, Guatemala", "telefono": "2222-2000" }
+  ```
+- **Response `201 Created`**:
+  ```json
+  {
+    "success": true,
+    "mensaje": "Sucursal creada exitosamente",
+    "sucursal": { "id": 2, "nombre": "Sucursal Norte", "direccion": "Zona 18, Guatemala", "telefono": "2222-2000" }
+  }
+  ```
+- **Response `409 Conflict`**: Si ya existe una sucursal con el mismo nombre.
 
-Roles contemplados:
+### PUT `/v1/sucursales/{id}`
+Actualiza los datos de una sucursal existente.
+- **Request Body**:
+  ```json
+  { "nombre": "Sucursal Central Modificada", "direccion": "Zona 10, Guatemala", "telefono": "2333-9999" }
+  ```
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "mensaje": "Sucursal actualizada exitosamente",
+    "sucursal": { "id": 1, "nombre": "Sucursal Central Modificada", "direccion": "Zona 10, Guatemala", "telefono": "2333-9999" }
+  }
+  ```
 
-* Administrador
-* Operador
-* Auditor
-
----
-
-## POST `/v1/auth/usuarios`
-
-Registra un nuevo usuario.
-
-Debe validar que el identificador sea único.
-
----
-
-# 3. Sucursales
-
-## GET `/v1/sucursales`
-
-Obtiene las sucursales activas.
-
-## POST `/v1/sucursales`
-
-Registra una nueva sucursal.
-
-Debe validar que el ID sea único.
-
-## PUT `/v1/sucursales/{id}`
-
-Actualiza una sucursal existente.
-
-La actualización debe realizarse respetando el tamaño fijo del registro.
-
-## DELETE `/v1/sucursales/{id}`
-
-Realiza una baja lógica.
-
-No eliminar físicamente el registro.
-
----
-
-# 4. Clientes
-
-## GET `/v1/clientes`
-
-Obtiene los clientes activos.
-
-## POST `/v1/clientes`
-
-Registra un nuevo cliente.
-
-## PUT `/v1/clientes/{id}`
-
-Modifica los datos de un cliente.
-
-## DELETE `/v1/clientes/{id}`
-
-Realiza baja lógica.
+### DELETE `/v1/sucursales/{id}`
+Realiza la baja lógica (`activo = false`) de una sucursal.
+- **Response `200 OK`**:
+  ```json
+  { "success": true, "mensaje": "Sucursal eliminada exitosamente (baja lógica)" }
+  ```
 
 ---
 
-# 5. Rutas
+## 4. Clientes (`/v1/clientes`) - Implementado en Fase 4A
 
-## GET `/v1/rutas`
+### GET `/v1/clientes`
+Obtiene la lista de todos los clientes activos.
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "clientes": [
+      { "id": 1, "nit": "123456-7", "nombre": "Corporación Alfa", "direccion": "Roosevelt Km 14", "telefono": "2444-1111" }
+    ]
+  }
+  ```
 
-Obtiene las rutas activas.
+### GET `/v1/clientes/{id}`
+Obtiene un cliente por su ID.
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "cliente": { "id": 1, "nit": "123456-7", "nombre": "Corporación Alfa", "direccion": "Roosevelt Km 14", "telefono": "2444-1111" }
+  }
+  ```
 
-## POST `/v1/rutas`
+### POST `/v1/clientes`
+Crea un nuevo cliente con validación de NIT único.
+- **Request Body**:
+  ```json
+  { "nit": "123456-7", "nombre": "Corporación Alfa", "direccion": "Roosevelt Km 14", "telefono": "2444-1111" }
+  ```
+- **Response `201 Created`**:
+  ```json
+  {
+    "success": true,
+    "mensaje": "Cliente creado exitosamente",
+    "cliente": { "id": 1, "nit": "123456-7", "nombre": "Corporación Alfa", "direccion": "Roosevelt Km 14", "telefono": "2444-1111" }
+  }
+  ```
+- **Response `409 Conflict`**: Si ya existe un cliente con el mismo NIT.
 
-Registra una ruta.
+### PUT `/v1/clientes/{id}`
+Actualiza los datos de un cliente existente.
+- **Request Body**:
+  ```json
+  { "nit": "123456-7", "nombre": "Corporación Alfa Modificada", "direccion": "Roosevelt Km 15", "telefono": "2444-9999" }
+  ```
+- **Response `200 OK`**:
+  ```json
+  { "success": true, "mensaje": "Cliente actualizado exitosamente", "cliente": { ... } }
+  ```
 
-## PUT `/v1/rutas/{id}`
-
-Modifica una ruta.
-
-## DELETE `/v1/rutas/{id}`
-
-Realiza baja lógica.
-
----
-
-# 6. Vehículos
-
-## GET `/v1/vehiculos`
-
-Obtiene los vehículos activos.
-
-Debe incluir información relacionada con:
-
-* Estado.
-* Capacidad de peso.
-* Capacidad de volumen.
-
-## POST `/v1/vehiculos`
-
-Registra un vehículo.
-
-## PUT `/v1/vehiculos/{id}`
-
-Modifica un vehículo.
-
-## DELETE `/v1/vehiculos/{id}`
-
-Realiza baja lógica.
-
----
-
-# 7. Pilotos
-
-## GET `/v1/pilotos`
-
-Obtiene los pilotos activos.
-
-## POST `/v1/pilotos`
-
-Registra un piloto.
-
-## PUT `/v1/pilotos/{id}`
-
-Modifica los datos del piloto.
-
-## DELETE `/v1/pilotos/{id}`
-
-Realiza baja lógica.
+### DELETE `/v1/clientes/{id}`
+Realiza la baja lógica (`activo = false`) de un cliente.
+- **Response `200 OK`**:
+  ```json
+  { "success": true, "mensaje": "Cliente eliminado exitosamente (baja lógica)" }
+  ```
 
 ---
 
-# 8. Tarifas
+## 5. Endpoints Pendientes (Próximas Fases)
 
-## GET `/v1/tarifas`
-
-Obtiene las tarifas.
-
-## POST `/v1/tarifas`
-
-Registra una tarifa.
-
----
-
-# 9. Guías
-
-## POST `/v1/transacciones/guias`
-
-Registra una nueva guía.
-
-Debe:
-
-1. Recibir las dimensiones.
-2. Recibir el peso real.
-3. Calcular peso volumétrico.
-4. Determinar el peso facturable.
-5. Calcular el costo.
-6. Guardar el registro en `guias.dat`.
-
----
-
-# 10. Despacho
-
-## POST `/v1/transacciones/despacho`
-
-Asigna carga a un vehículo.
-
-Debe validar:
-
-* Capacidad máxima de peso.
-* Capacidad máxima de volumen.
-
-Si la carga supera la capacidad disponible, la operación debe ser rechazada.
-
----
-
-# 11. Reportes
-
-## GET `/v1/reportes/rastreo/{numeroGuia}`
-
-Obtiene información de rastreo de una guía.
-
----
-
-## GET `/v1/reportes/manifiesto/{idVehiculo}`
-
-Genera información consolidada de las guías asignadas a un vehículo.
-
----
-
-## GET `/v1/reportes/liquidacion`
-
-Obtiene información consolidada de ingresos por sucursal y tipo de servicio.
-
----
-
-# 12. Convención de respuestas
-
-Las respuestas deben utilizar JSON.
-
-Los errores deben proporcionar información suficiente para identificar el problema.
-
-Ejemplo conceptual:
-
-```json
-{
-    "success": false,
-    "message": "Vehículo sin capacidad disponible"
-}
-```
-
-No modificar las rutas definidas aquí sin actualizar este documento.
+- `/v1/rutas` (Fase 4B)
+- `/v1/vehiculos` (Fase 4B)
+- `/v1/pilotos` (Fase 4B)
+- `/v1/tarifas` (Fase 4B)
+- `/v1/transacciones/guias` (Fase 5)
+- `/v1/transacciones/despacho` (Fase 5)
+- `/v1/reportes/*` (Fase 6)
