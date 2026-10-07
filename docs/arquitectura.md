@@ -1,198 +1,84 @@
 # Arquitectura - UMG Express
 
-## 1. Estructura actual
+## 1. Estructura del Proyecto (Fase 1)
 
 ```text
-umg_express/
-├── main.cpp
-├── build.sh
-├── include/
-│   ├── structs.h
-│   ├── auth.h
-│   ├── sucursales.h
-│   ├── clientes.h
-│   ├── rutas.h
-│   ├── vehiculos.h
-│   ├── pilotos.h
-│   ├── tarifas.h
-│   ├── transacciones.h
-│   └── reportes.h
-└── data/
-    ├── usuarios.dat
-    ├── sucursales.dat
-    ├── clientes.dat
-    ├── rutas.dat
-    ├── vehiculos.dat
-    ├── pilotos.dat
-    ├── tarifas.dat
-    └── guias.dat
+umgExpress/
+├── main.cpp            # Punto de entrada HTTP y configuración de servidor Crow
+├── build.sh            # Script de compilación C++17 (sin CMake)
+├── server              # Ejecutable binario generado por build.sh
+├── include/            # Encabezados de módulos (.h)
+│   ├── structs.h       # Estructuras de tamaño fijo para archivos binarios .dat
+│   ├── auth.h          # Módulo de Autenticación
+│   ├── sucursales.h    # Módulo de Sucursales
+│   ├── clientes.h      # Módulo de Clientes
+│   ├── rutas.h         # Módulo de Rutas
+│   ├── vehiculos.h     # Módulo de Vehículos
+│   ├── pilotos.h       # Módulo de Pilotos
+│   ├── tarifas.h       # Módulo de Tarifas
+│   ├── transacciones.h # Módulo de Transacciones
+│   └── reportes.h      # Módulo de Reportes
+├── data/               # Directorio para archivos binarios .dat
+│   ├── usuarios.dat
+│   ├── sucursales.dat
+│   ├── clientes.dat
+│   ├── rutas.dat
+│   ├── vehiculos.dat
+│   ├── pilotos.dat
+│   ├── tarifas.dat
+│   └── guias.dat
+└── docs/               # Documentación viva del proyecto
+    ├── arquitectura.md
+    ├── estructura-dat.md
+    ├── rutas-api.md
+    ├── reglas-negocio.md
+    └── estado-proyecto.md
 ```
 
 ---
 
-## 2. `main.cpp`
+## 2. Punto de Entrada (`main.cpp`)
 
-Es el punto de entrada de la aplicación.
+Es el archivo principal de la aplicación.
 
-Responsabilidades:
-
-* Crear la aplicación Crow.
-* Configurar el servidor.
-* Registrar endpoints.
-* Iniciar el servidor.
-
-No debe contener toda la lógica del negocio.
+Responsabilidades en la Fase 1:
+* Instanciar la aplicación HTTP utilizando el framework **Crow**.
+* Enlazar el servidor a `127.0.0.1:18080`.
+* Configurar las rutas HTTP base (`GET /` y `GET /v1/health`).
+* Responder solicitudes con formato JSON (`crow::json::wvalue`).
+* Iniciar el bucle multihilo del servidor web.
 
 ---
 
-## 3. `crow.h`
+## 3. Sistema de Compilación (`build.sh`)
 
-Cabecera utilizada para integrar el framework Crow.
+No se utiliza CMake ni `CMakeLists.txt`.
 
-Permite:
+La compilación se realiza directamente invocando `clang++` con el estándar C++17:
 
-* Crear el servidor HTTP.
-* Definir rutas.
-* Procesar solicitudes HTTP.
-* Generar respuestas JSON.
-
----
-
-## 4. `include/structs.h`
-
-Contiene las estructuras utilizadas por el sistema.
-
-Las estructuras que se almacenan en archivos `.dat` deben utilizar campos de tamaño fijo.
-
----
-
-## 5. Módulos
-
-### `auth.h`
-
-Autenticación y usuarios.
-
-Archivo:
-
-```text
-data/usuarios.dat
-```
-
-### `sucursales.h`
-
-CRUD de sucursales.
-
-Archivo:
-
-```text
-data/sucursales.dat
-```
-
-### `clientes.h`
-
-CRUD de clientes.
-
-Archivo:
-
-```text
-data/clientes.dat
-```
-
-### `rutas.h`
-
-CRUD de rutas.
-
-Archivo:
-
-```text
-data/rutas.dat
-```
-
-### `vehiculos.h`
-
-CRUD de vehículos.
-
-Archivo:
-
-```text
-data/vehiculos.dat
-```
-
-### `pilotos.h`
-
-CRUD de pilotos.
-
-Archivo:
-
-```text
-data/pilotos.dat
-```
-
-### `tarifas.h`
-
-Gestión de tarifas.
-
-Archivo:
-
-```text
-data/tarifas.dat
-```
-
-### `transacciones.h`
-
-Operaciones transaccionales.
-
-Incluye:
-
-* Guías.
-* Cálculo de peso volumétrico.
-* Costos.
-* Despacho.
-* Capacidad vehicular.
-
-Archivo principal:
-
-```text
-data/guias.dat
-```
-
-### `reportes.h`
-
-Consultas y reportes:
-
-* Rastreo.
-* Manifiestos.
-* Liquidaciones.
-
----
-
-## 6. Flujo general
-
-```text
-React
-  |
-  | HTTP / JSON
-  v
-Crow
-  |
-  v
-main.cpp / endpoints
-  |
-  v
-Funciones del módulo correspondiente
-  |
-  v
-Archivos .dat
+```bash
+clang++ -std=c++17 -I/usr/local/include -Iinclude main.cpp -o server
 ```
 
 ---
 
-## 7. Principio arquitectónico
+## 4. Integración de Dependencias
 
-La API debe encargarse de recibir y responder solicitudes.
+- **Crow HTTP Framework**: Cabecera principal instalada en `/usr/local/include/crow.h`.
+- **Asio**: Cabeceras asíncronas standalone en `/usr/local/include/asio.hpp`.
 
-Las funciones de los módulos deben encargarse de la lógica correspondiente.
+---
 
-La persistencia debe realizarse directamente mediante archivos binarios.
+## 5. Flujo de Comunicación HTTP
 
-No introducir bases de datos externas.
+```text
+Cliente HTTP / Browser / cURL / React
+                 |
+                 | HTTP GET / JSON
+                 v
+            Servidor Crow
+            (main.cpp:18080)
+                 |
+                 v
+          Respuesta JSON 200 OK
+```
