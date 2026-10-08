@@ -1,10 +1,10 @@
 # Arquitectura - UMG Express
 
-## 1. Estructura del Proyecto (Fase 4C)
+## 1. Estructura del Proyecto (Fase 5A)
 
 ```text
 umgExpress/
-├── main.cpp                 # Punto de entrada HTTP y servidor Crow (rutas base, auth, catálogos completos)
+├── main.cpp                 # Punto de entrada HTTP y servidor Crow (rutas base, auth, catálogos y guías)
 ├── build.sh                 # Script de compilación C++17 (sin CMake)
 ├── server                   # Ejecutable principal del servidor
 ├── test_persistence        # Pruebas unitarias de persistencia .dat
@@ -12,6 +12,7 @@ umgExpress/
 ├── test_sucursales_clientes # Pruebas unitarias de sucursales y clientes (Fase 4A)
 ├── test_rutas_vehiculos     # Pruebas unitarias de rutas y vehículos (Fase 4B)
 ├── test_pilotos_tarifas     # Pruebas unitarias de pilotos y tarifas (Fase 4C)
+├── test_guias               # Pruebas unitarias de emisión y consulta de guías (Fase 5A)
 ├── include/                 # Encabezados modulares
 │   ├── structs.h            # Estructuras de tamaño fijo para archivos binarios .dat
 │   ├── persistence.h        # Motor genérico de persistencia binaria (stdio)
@@ -22,14 +23,15 @@ umgExpress/
 │   ├── vehiculos.h          # Módulo CRUD de Vehículos (Fase 4B)
 │   ├── pilotos.h            # Módulo CRUD de Pilotos (Fase 4C)
 │   ├── tarifas.h            # Módulo CRUD de Tarifas (Fase 4C)
-│   ├── transacciones.h      # Módulo de Transacciones (Próximas fases)
+│   ├── transacciones.h      # Módulo de Transacciones - Emisión de Guías (Fase 5A)
 │   └── reportes.h           # Módulo de Reportes (Próximas fases)
 ├── tests/                   # Pruebas unitarias e integración
 │   ├── test_persistence.cpp  # Pruebas de almacenamiento .dat
 │   ├── test_auth.cpp        # Pruebas de autenticación
 │   ├── test_sucursales_clientes.cpp # Pruebas de sucursales y clientes
 │   ├── test_rutas_vehiculos.cpp     # Pruebas de rutas y vehículos
-│   └── test_pilotos_tarifas.cpp     # Pruebas de pilotos y tarifas
+│   ├── test_pilotos_tarifas.cpp     # Pruebas de pilotos y tarifas
+│   └── test_guias.cpp               # Pruebas de emisión y consulta de guías (Fase 5A)
 ├── data/                    # Directorio de persistencia binaria .dat
 │   ├── usuarios.dat
 │   ├── sucursales.dat
@@ -43,6 +45,7 @@ umgExpress/
     ├── arquitectura.md
     ├── autenticacion.md
     ├── estructura-dat.md
+    ├── guias.md
     ├── rutas-api.md
     ├── reglas-negocio.md
     └── estado-proyecto.md
@@ -58,7 +61,8 @@ umgExpress/
 - **Rutas (`include/rutas.h`)**: Gestión CRUD de rutas entre sucursales activas.
 - **Vehículos (`include/vehiculos.h`)**: Gestión CRUD de vehículos con capacidades de peso (kg), volumen (m3) y estados operacionales.
 - **Pilotos (`include/pilotos.h`)**: Gestión CRUD de pilotos con número de licencia único y datos de contacto para asignación de transportes.
-- **Tarifas (`include/tarifas.h`)**: Gestión CRUD de tarifas por tipo de carga (precios por kg, por m3 y recargos especiales) para el cálculo futuro de guías.
+- **Tarifas (`include/tarifas.h`)**: Gestión CRUD de tarifas por tipo de carga (precios por kg, por m3 y recargos especiales).
+- **Transacciones - Guías (`include/transacciones.h`)**: Emisión de guías de envío con numeración correlativa automática (1001+), validaciones de clientes activos (remitente != destinatario), validación de ruta activa y búsqueda por número de guía.
 
 ---
 
@@ -74,3 +78,5 @@ umgExpress/
   - `/v1/vehiculos` (`GET`, `POST`) | `/v1/vehiculos/<int>` (`GET`, `PUT`, `DELETE`)
   - `/v1/pilotos` (`GET`, `POST`) | `/v1/pilotos/<int>` (`GET`, `PUT`, `DELETE`)
   - `/v1/tarifas` (`GET`, `POST`) | `/v1/tarifas/<int>` (`GET`, `PUT`, `DELETE`)
+  - `/v1/transacciones/guias` (`GET`, `POST`) | `/v1/transacciones/guias/<int>` (`GET`)
+
