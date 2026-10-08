@@ -2,9 +2,9 @@
 
 ## Información General
 - **Proyecto**: UMG Express (Sistema Logístico y de Paquetería)
-- **Fase Actual**: Fase 5A — Emisión de Guías
+- **Fase Actual**: Fase 5B — Cálculo de peso volumétrico y costos
 - **Estado de la Fase**: Completada
-- **Próxima Fase**: Fase 5B — Despacho y Operaciones (Pendiente de autorización)
+- **Próxima Fase**: Fase 5C — Despacho y Operaciones (Pendiente de autorización)
 
 ---
 
@@ -64,29 +64,34 @@
 ### Fase 5A — Emisión de Guías
 - **Estado**: COMPLETADA
 - **Trabajo Realizado**:
-  - Implementación de la entidad `Guia` en `include/structs.h` y persistencia binaria en `data/guias.dat` (`include/persistence.h`).
-  - Desarrollo de la lógica de negocio en `include/transacciones.h`:
-    - Generación correlativa auto-incremental de números de guía iniciando en `1001`.
-    - Validaciones relacionales: `idClienteRemitente` y `idClienteDestinatario` deben existir y estar activos (`activo = true`).
-    - Validación de diferencia de clientes: `idClienteRemitente != idClienteDestinatario`.
-    - Validación de ruta: `idRuta` debe existir y estar activa (`activo = true`).
-    - Validaciones de formato: peso > 0, dimensiones > 0, campos no vacíos.
-    - Consulta de listado de guías y búsqueda por número de guía.
-  - Implementación de endpoints REST HTTP en Crow (`main.cpp`):
-    - `POST /v1/transacciones/guias` (201 Created / 400 Bad Request / 404 Not Found)
-    - `GET /v1/transacciones/guias` (200 OK)
-    - `GET /v1/transacciones/guias/{numeroGuia}` (200 OK / 404 Not Found)
-  - Suite de pruebas unitarias en `tests/test_guias.cpp` (`test_guias`).
-  - Documentación técnica creada y actualizada en `docs/guias.md`, `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
+  - Implementación de la entidad `Guia` en `include/structs.h` y persistencia binaria en `data/guias.dat`.
+  - Lógica de negocio en `include/transacciones.h` con numeración correlativa (1001+) y validaciones relacionales.
+  - Endpoints REST HTTP bajo `/v1/transacciones/guias`.
+  - Suite de pruebas unitarias en `tests/test_guias.cpp`.
+
+### Fase 5B — Cálculo de Peso Volumétrico y Costos
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Implementación del motor de cálculo matemático en `include/transacciones.h`:
+    - Peso volumétrico: `(largo * ancho * alto) / 5000.0`.
+    - Peso facturable: `max(pesoReal, pesoVolumetrico)`.
+    - Volumen en m3: `(largo * ancho * alto) / 1000000.0`.
+    - Costo total: `tarifaBaseRuta + (pesoFacturable * precioPorKg) + (volumenM3 * precioPorM3) + recargoEspecial`.
+  - Integración de los campos calculados (`pesoVolumetricoKg`, `pesoFacturableKg`, `costoTotal`) en `struct Guia` y su persistencia binaria en `data/guias.dat`.
+  - Actualización de los endpoints REST en Crow (`main.cpp`):
+    - `POST /v1/transacciones/guias` (retorna guía creada con campos calculados).
+    - `GET /v1/transacciones/guias` y `GET /v1/transacciones/guias/{numeroGuia}` (retornan lista/guía con campos calculados).
+  - Suite de pruebas unitarias en `tests/test_calculos.cpp` (`test_calculos`).
+  - Documentación técnica creada y actualizada en `docs/calculos-guias.md`, `docs/guias.md`, `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
 - **Pruebas Realizadas**:
-  - Pruebas unitarias ejecutadas mediante `./test_guias` (0 errores).
-  - Peticiones HTTP reales ejecutadas vía `curl` contra el servidor en vivo en `127.0.0.1:18080`.
+  - Pruebas unitarias ejecutadas con `./test_calculos` (0 errores).
+  - Verificación de fórmulas matemáticas directas, comparaciones peso real vs volumétrico y cálculo de costo total con tarifa.
   - Recompilación limpia verificada con `./build.sh`.
 - **Decisiones Importantes**:
-  - `Guia` utiliza `numeroGuia` como clave primaria para búsquedas y consultas directas en lugar de `id`.
-  - Se mantuvo fuera del alcance de la Fase 5A el peso volumétrico, el cálculo de costos, la asignación de vehículos y el despacho según las restricciones acordadas.
+  - Se mantuvo compatibilidad binaria estricta en `struct Guia` sin alterar el diseño de tamaño fijo.
+  - Se mantuvo fuera del alcance de la Fase 5B el despacho, asignación de vehículos, validación de capacidad de transporte y reportes según las instrucciones explícitas.
 - **Problemas Pendientes**:
-  - Ninguno. La emisión y consulta de guías está 100% probada y funcional.
+  - Ninguno. El cálculo de peso volumétrico y costo total está 100% probado y funcional.
 
 ---
 
@@ -102,9 +107,11 @@
 | **Fase 4B** | CRUD de Rutas y Vehículos (`include/rutas.h`, `include/vehiculos.h`, API REST) | **Completada** |
 | **Fase 4C** | CRUD de Pilotos y Tarifas (`include/pilotos.h`, `include/tarifas.h`, API REST) | **Completada** |
 | **Fase 5A** | Emisión y consulta de Guías (`include/transacciones.h`, `guias.dat`, API REST) | **Completada** |
-| **Fase 5B** | Despacho y Operaciones (Asignación de vehículos, peso volumétrico, capacidad, costo) | Pendiente |
+| **Fase 5B** | Cálculo de peso volumétrico y costos (fórmulas, peso facturable, costo total) | **Completada** |
+| **Fase 5C** | Despacho y Operaciones (Asignación de vehículos, capacidad, estado) | Pendiente |
 | **Fase 6** | Reportes (Rastreo, Manifiestos, Liquidación) | Pendiente |
 | **Fase 7** | API completa e integración con React | Pendiente |
 | **Fase 8** | Pruebas y estabilización | Pendiente |
 | **Fase 9** | Documentación y revisión final | Pendiente |
+
 
