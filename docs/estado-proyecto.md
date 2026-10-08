@@ -2,10 +2,10 @@
 
 ## Información General
 - **Proyecto**: UMG Express (Sistema Logístico y de Paquetería)
-- **Fase Actual**: Fase 4A — CRUD de Sucursales y Clientes
+- **Fase Actual**: Fase 4B — CRUD de Rutas y Vehículos
 - **Estado de la Fase**: Completada
-- **Próxima Fase**: Fase 4B — CRUD de Rutas, Vehículos, Pilotos y Tarifas (Pendiente de autorización)
-- **Rama Git**: `feature/clients-and-agencies`
+- **Próxima Fase**: Fase 4C — CRUD de Pilotos y Tarifas (Pendiente de autorización)
+- **Rama Git**: `feature/routes-and-vehicles`
 
 ---
 
@@ -44,34 +44,41 @@
 ### Fase 4A — CRUD de Sucursales y Clientes
 - **Estado**: COMPLETADA
 - **Trabajo Realizado**:
-  - Implementación de la lógica de negocio y persistencia para Sucursales en `include/sucursales.h`.
-    - Operaciones: Crear, Listar activos, Consultar por ID, Actualizar por ID y Baja lógica (`activo = false`).
-    - Validaciones: Campos requeridos, restricciones de longitud y prevención de nombres duplicados.
-  - Implementación de la lógica de negocio y persistencia para Clientes en `include/clientes.h`.
-    - Operaciones: Crear, Listar activos, Consultar por ID, Actualizar por ID y Baja lógica (`activo = false`).
-    - Validaciones: Campos requeridos, restricciones de longitud y prevención de NITs duplicados.
-  - Implementación de endpoints REST en Crow (`main.cpp`):
-    - `GET /v1/sucursales` (200 OK)
-    - `GET /v1/sucursales/{id}` (200 OK / 404 Not Found)
-    - `POST /v1/sucursales` (201 Created / 409 Conflict / 400 Bad Request)
-    - `PUT /v1/sucursales/{id}` (200 OK / 404 Not Found / 409 Conflict)
-    - `DELETE /v1/sucursales/{id}` (200 OK / 404 Not Found)
-    - `GET /v1/clientes` (200 OK)
-    - `GET /v1/clientes/{id}` (200 OK / 404 Not Found)
-    - `POST /v1/clientes` (201 Created / 409 Conflict / 400 Bad Request)
-    - `PUT /v1/clientes/{id}` (200 OK / 404 Not Found / 409 Conflict)
-    - `DELETE /v1/clientes/{id}` (200 OK / 404 Not Found)
+  - Módulos `include/sucursales.h` e `include/clientes.h` con CRUD binario y validaciones.
+  - Endpoints REST bajo `/v1/sucursales` y `/v1/clientes`.
   - Suite de pruebas unitarias en `tests/test_sucursales_clientes.cpp`.
+
+### Fase 4B — CRUD de Rutas y Vehículos
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Implementación de la lógica de negocio y persistencia para Rutas en `include/rutas.h`.
+    - Operaciones: Crear, Listar activas, Consultar por ID, Actualizar por ID y Baja lógica (`activo = false`).
+    - Validaciones: Verificación de que las sucursales de origen y destino existan y estén activas en `data/sucursales.dat`, origen != destino, distanciaKm > 0, tarifaBase >= 0 y no duplicidad de trayecto.
+  - Implementación de la lógica de negocio y persistencia para Vehículos en `include/vehiculos.h`.
+    - Operaciones: Crear, Listar activos, Consultar por ID, Actualizar por ID y Baja lógica (`activo = false`).
+    - Validaciones: Placa única, capacidad de peso > 0 kg, capacidad de volumen > 0 m3, y estado válido (`Disponible`, `En ruta`, `En taller`).
+  - Implementación de endpoints REST en Crow (`main.cpp`):
+    - `GET /v1/rutas` (200 OK)
+    - `GET /v1/rutas/{id}` (200 OK / 404 Not Found)
+    - `POST /v1/rutas` (201 Created / 404 Not Found / 409 Conflict / 400 Bad Request)
+    - `PUT /v1/rutas/{id}` (200 OK / 404 Not Found / 409 Conflict / 400 Bad Request)
+    - `DELETE /v1/rutas/{id}` (200 OK / 404 Not Found)
+    - `GET /v1/vehiculos` (200 OK)
+    - `GET /v1/vehiculos/{id}` (200 OK / 404 Not Found)
+    - `POST /v1/vehiculos` (201 Created / 409 Conflict / 400 Bad Request)
+    - `PUT /v1/vehiculos/{id}` (200 OK / 404 Not Found / 409 Conflict / 400 Bad Request)
+    - `DELETE /v1/vehiculos/{id}` (200 OK / 404 Not Found)
+  - Suite de pruebas unitarias en `tests/test_rutas_vehiculos.cpp`.
   - Documentación técnica actualizada en `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
 - **Pruebas Realizadas**:
-  - Pruebas unitarias completas ejecutando `./test_sucursales_clientes` (0 errores).
-  - Peticiones HTTP reales ejecutadas mediante `curl` a todos los verbos HTTP (`GET`, `POST`, `PUT`, `DELETE`) para `/v1/sucursales` y `/v1/clientes`.
+  - Pruebas unitarias completas ejecutando `./test_rutas_vehiculos` (0 errores).
+  - Peticiones HTTP reales ejecutadas mediante `curl` a todos los verbos HTTP (`GET`, `POST`, `PUT`, `DELETE`) para `/v1/rutas` y `/v1/vehiculos`.
   - Recompilación limpia verificada con `./build.sh`.
 - **Decisiones Importantes**:
-  - Encapsular las validaciones de negocio en `include/sucursales.h` e `include/clientes.h` para desacoplar las rutas HTTP de Crow de las reglas de datos.
-  - Mantener los nombres de sucursal y NITs de clientes como valores únicos para evitar colisiones lógicas en el sistema.
+  - Las rutas mantienen una referencia relacional por ID con las sucursales y validan activamente que ambas sucursales existan antes de la creación o actualización.
+  - Los datos de vehículo capturan capacidades físicas de peso y volumen que posteriormente serán consumidas por las operaciones de despacho en la Fase 5.
 - **Problemas Pendientes**:
-  - Ninguno. La Fase 4A está 100% probada y funcional.
+  - Ninguno. La Fase 4B está 100% probada y funcional.
 
 ---
 
@@ -84,7 +91,8 @@
 | **Fase 2** | Estructuras y persistencia (`structs.h`, `persistence.h`, `.dat`) | **Completada** |
 | **Fase 3** | Autenticación y usuarios (`auth.h`, `POST /v1/auth/login`, `POST /v1/auth/usuarios`) | **Completada** |
 | **Fase 4A** | CRUD de Sucursales y Clientes (`include/sucursales.h`, `include/clientes.h`, API REST) | **Completada** |
-| **Fase 4B** | CRUD de Rutas, Vehículos, Pilotos y Tarifas | Pendiente |
+| **Fase 4B** | CRUD de Rutas y Vehículos (`include/rutas.h`, `include/vehiculos.h`, API REST) | **Completada** |
+| **Fase 4C** | CRUD de Pilotos y Tarifas | Pendiente |
 | **Fase 5** | Transacciones (Guías, Despacho, validaciones de peso/volumen) | Pendiente |
 | **Fase 6** | Reportes (Rastreo, Manifiestos, Liquidación) | Pendiente |
 | **Fase 7** | API completa e integración con React | Pendiente |
