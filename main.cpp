@@ -853,6 +853,9 @@ int main() {
             item["largoCm"] = g.largoCm;
             item["anchoCm"] = g.anchoCm;
             item["altoCm"] = g.altoCm;
+            item["pesoVolumetricoKg"] = g.pesoVolumetricoKg;
+            item["pesoFacturableKg"] = g.pesoFacturableKg;
+            item["costoTotal"] = g.costoTotal;
             item["estado"] = std::string(g.estado);
             jsonList.push_back(std::move(item));
         }
@@ -879,6 +882,9 @@ int main() {
         gJson["largoCm"] = g.largoCm;
         gJson["anchoCm"] = g.anchoCm;
         gJson["altoCm"] = g.altoCm;
+        gJson["pesoVolumetricoKg"] = g.pesoVolumetricoKg;
+        gJson["pesoFacturableKg"] = g.pesoFacturableKg;
+        gJson["costoTotal"] = g.costoTotal;
         gJson["estado"] = std::string(g.estado);
 
         res["success"] = true;
@@ -905,7 +911,10 @@ int main() {
         double ancho = body["anchoCm"].d();
         double alto = body["altoCm"].d();
 
-        if (!Guias::crearGuia(Guias::DEFAULT_FILE_GUIAS, Clientes::DEFAULT_FILE_CLIENTES, Rutas::DEFAULT_FILE_RUTAS, rem, dest, rId, peso, largo, ancho, alto, nueva, errorMsg)) {
+        int idTarifa = body.has("idTarifa") ? body["idTarifa"].i() : 0;
+        std::string tipoCarga = body.has("tipoCarga") ? std::string(body["tipoCarga"].s()) : "";
+
+        if (!Guias::crearGuia(Guias::DEFAULT_FILE_GUIAS, Clientes::DEFAULT_FILE_CLIENTES, Rutas::DEFAULT_FILE_RUTAS, Tarifas::DEFAULT_FILE_TARIFAS, rem, dest, rId, peso, largo, ancho, alto, idTarifa, tipoCarga, nueva, errorMsg)) {
             res["success"] = false;
             res["mensaje"] = errorMsg;
             int code = (errorMsg.find("no existe") != std::string::npos) ? 404 : 400;
@@ -921,10 +930,13 @@ int main() {
         gJson["largoCm"] = nueva.largoCm;
         gJson["anchoCm"] = nueva.anchoCm;
         gJson["altoCm"] = nueva.altoCm;
+        gJson["pesoVolumetricoKg"] = nueva.pesoVolumetricoKg;
+        gJson["pesoFacturableKg"] = nueva.pesoFacturableKg;
+        gJson["costoTotal"] = nueva.costoTotal;
         gJson["estado"] = std::string(nueva.estado);
 
         res["success"] = true;
-        res["mensaje"] = "Guía creada exitosamente";
+        res["mensaje"] = "Guía creada exitosamente con peso volumétrico y costo calculados";
         res["guia"] = std::move(gJson);
         return crow::response(201, res);
     });
