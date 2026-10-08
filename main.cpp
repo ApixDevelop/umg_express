@@ -12,6 +12,7 @@
 #include "vehiculos.h"
 #include "pilotos.h"
 #include "tarifas.h"
+#include "transacciones.h"
 
 void inicializarPersistencia() {
     Persistence::asegurarArchivo("data/usuarios.dat");
@@ -42,7 +43,7 @@ int main() {
         res["estado"] = "ok";
         res["mensaje"] = "Servidor UMG Express API en funcionamiento";
         res["version"] = "1.0.0";
-        res["fase"] = "Fase 4C - CRUD de Catálogos (Pilotos y Tarifas) completada";
+        res["fase"] = "Fase 5A - Emisión de Guías completada";
         return crow::response(200, res);
     });
 
@@ -54,12 +55,8 @@ int main() {
         res["status"] = "UP";
         res["servicio"] = "UMG Express API";
         res["modulo_auth"] = "OK";
-        res["modulo_sucursales"] = "OK";
-        res["modulo_clientes"] = "OK";
-        res["modulo_rutas"] = "OK";
-        res["modulo_vehiculos"] = "OK";
-        res["modulo_pilotos"] = "OK";
-        res["modulo_tarifas"] = "OK";
+        res["modulo_catalogos"] = "OK";
+        res["modulo_guias"] = "OK";
         return crow::response(200, res);
     });
 
@@ -774,12 +771,7 @@ int main() {
 
         Tarifa nueva;
         std::string errorMsg;
-        std::string tipoCarga = body["tipoCarga"].s();
-        double pkg = body["precioPorKg"].d();
-        double pm3 = body["precioPorM3"].d();
-        double recargo = body["recargoEspecial"].d();
-
-        if (!Tarifas::crearTarifa(Tarifas::DEFAULT_FILE_TARIFAS, tipoCarga, pkg, pm3, recargo, nueva, errorMsg)) {
+        if (!Tarifas::crearTarifa(Tarifas::DEFAULT_FILE_TARIFAS, body["tipoCarga"].s(), body["precioPorKg"].d(), body["precioPorM3"].d(), body["recargoEspecial"].d(), nueva, errorMsg)) {
             res["success"] = false;
             res["mensaje"] = errorMsg;
             int code = (errorMsg.find("Ya existe") != std::string::npos) ? 409 : 400;
@@ -810,12 +802,7 @@ int main() {
 
         Tarifa act;
         std::string errorMsg;
-        std::string tipoCarga = body["tipoCarga"].s();
-        double pkg = body["precioPorKg"].d();
-        double pm3 = body["precioPorM3"].d();
-        double recargo = body["recargoEspecial"].d();
-
-        if (!Tarifas::actualizarTarifa(Tarifas::DEFAULT_FILE_TARIFAS, id, tipoCarga, pkg, pm3, recargo, act, errorMsg)) {
+        if (!Tarifas::actualizarTarifa(Tarifas::DEFAULT_FILE_TARIFAS, id, body["tipoCarga"].s(), body["precioPorKg"].d(), body["precioPorM3"].d(), body["recargoEspecial"].d(), act, errorMsg)) {
             res["success"] = false;
             res["mensaje"] = errorMsg;
             int code = (errorMsg.find("no encontrada") != std::string::npos) ? 404 :
@@ -848,6 +835,98 @@ int main() {
         res["success"] = true;
         res["mensaje"] = "Tarifa eliminada exitosamente (baja lógica)";
         return crow::response(200, res);
+    });
+
+    // -------------------------------------------------------------------------
+    // MÓDULO: TRANSACCIONES / GUÍAS (/v1/transacciones/guias)
+    // -------------------------------------------------------------------------
+    CROW_ROUTE(app, "/v1/transacciones/guias").methods(crow::HTTPMethod::GET)([]() {
+        std::vector<Guia> lista = Guias::listarGuias(Guias::DEFAULT_FILE_GUIAS);
+        crow::json::wvalue::list jsonList;
+        for (const auto& g : lista) {
+            crow::json::wvalue item;
+            item["numeroGuia"] = g.numeroGuia;
+            item["idClienteRemitente"] = g.idClienteRemitente;
+            item["idClienteDestinatario"] = g.idClienteDestinatario;
+            item["idRuta"] = g.idRuta;
+            item["pesoRealKg"] = g.pesoRealKg;
+            item["largoCm"] = g.largoCm;
+            item["anchoCm"] = g.anchoCm;
+            item["altoCm"] = g.altoCm;
+            item["estado"] = std::string(g.estado);
+            jsonList.push_back(std::move(item));
+        }
+        crow::json::wvalue res;
+        res["success"] = true;
+        res["guias"] = std::move(jsonList);
+        return crow::response(200, res);
+    });
+
+    CROW_ROUTE(app, "/v1/transacciones/guias/<int>").methods(crow::HTTPMethod::GET)([](int numeroGuia) {
+        Guia g;
+        crow::json::wvalue res;
+        if (!Guias::obtenerGuiaPorNumero(Guias::DEFAULT_FILE_GUIAS, numeroGuia, g)) {
+            res["success"] = false;
+            res["mensaje"] = "Guía número " + std::to_string(numeroGuia) + " no encontrada o inactiva";
+            return crow::response(404, res);
+        }
+        crow::json::wvalue gJson;
+        gJson["numeroGuia"] = g.numeroGuia;
+        gJson["idClienteRemitente"] = g.idClienteRemitente;
+        gJson["idClienteDestinatario"] = g.idClienteDestinatario;
+        gJson["idRuta"] = g.idRuta;
+        gJson["pesoRealKg"] = g.pesoRealKg;
+        gJson["largoCm"] = g.largoCm;
+        gJson["anchoCm"] = g.anchoCm;
+        gJson["altoCm"] = g.altoCm;
+        gJson["estado"] = std::string(g.estado);
+
+        res["success"] = true;
+        res["guia"] = std::move(gJson);
+        return crow::response(200, res);
+    });
+
+    CROW_ROUTE(app, "/v1/transacciones/guias").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        crow::json::wvalue res;
+        auto body = crow::json::load(req.body);
+        if (!body || !body.has("idClienteRemitente") || !body.has("idClienteDestinatario") || !body.has("idRuta") || !body.has("pesoRealKg") || !body.has("largoCm") || !body.has("anchoCm") || !body.has("altoCm")) {
+            res["success"] = false;
+            res["mensaje"] = "Se requieren los campos: idClienteRemitente, idClienteDestinatario, idRuta, pesoRealKg, largoCm, anchoCm, altoCm";
+            return crow::response(400, res);
+        }
+
+        Guia nueva;
+        std::string errorMsg;
+        int rem = body["idClienteRemitente"].i();
+        int dest = body["idClienteDestinatario"].i();
+        int rId = body["idRuta"].i();
+        double peso = body["pesoRealKg"].d();
+        double largo = body["largoCm"].d();
+        double ancho = body["anchoCm"].d();
+        double alto = body["altoCm"].d();
+
+        if (!Guias::crearGuia(Guias::DEFAULT_FILE_GUIAS, Clientes::DEFAULT_FILE_CLIENTES, Rutas::DEFAULT_FILE_RUTAS, rem, dest, rId, peso, largo, ancho, alto, nueva, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            int code = (errorMsg.find("no existe") != std::string::npos) ? 404 : 400;
+            return crow::response(code, res);
+        }
+
+        crow::json::wvalue gJson;
+        gJson["numeroGuia"] = nueva.numeroGuia;
+        gJson["idClienteRemitente"] = nueva.idClienteRemitente;
+        gJson["idClienteDestinatario"] = nueva.idClienteDestinatario;
+        gJson["idRuta"] = nueva.idRuta;
+        gJson["pesoRealKg"] = nueva.pesoRealKg;
+        gJson["largoCm"] = nueva.largoCm;
+        gJson["anchoCm"] = nueva.anchoCm;
+        gJson["altoCm"] = nueva.altoCm;
+        gJson["estado"] = std::string(nueva.estado);
+
+        res["success"] = true;
+        res["mensaje"] = "Guía creada exitosamente";
+        res["guia"] = std::move(gJson);
+        return crow::response(201, res);
     });
 
     std::cout << "Servidor UMG Express escuchando en puerto 18080..." << std::endl;
