@@ -16,170 +16,168 @@ Prefijo global de API:
 
 ### POST `/v1/auth/login`
 Valida las credenciales de usuario.
-- **Request Body**:
-  ```json
-  { "username": "admin", "password": "admin123" }
-  ```
-- **Response `200 OK`**:
-  ```json
-  {
-    "success": true,
-    "mensaje": "Autenticación exitosa",
-    "usuario": { "id": 1, "username": "admin", "nombre": "Administrador Inicial", "rol": "Administrador" }
-  }
-  ```
+- **Request Body**: `{ "username": "admin", "password": "admin123" }`
+- **Response `200 OK`**: `{ "success": true, "mensaje": "Autenticación exitosa", "usuario": { ... } }`
 
 ### POST `/v1/auth/usuarios`
 Registra un nuevo usuario en `data/usuarios.dat`.
-- **Request Body**:
-  ```json
-  { "username": "operador1", "password": "pass", "nombre": "Carlos Gómez", "rol": "Operador" }
-  ```
-- **Response `201 Created`**:
-  ```json
-  {
-    "success": true,
-    "mensaje": "Usuario creado exitosamente",
-    "usuario": { "id": 2, "username": "operador1", "nombre": "Carlos Gómez", "rol": "Operador" }
-  }
-  ```
+- **Request Body**: `{ "username": "operador1", "password": "pass", "nombre": "Carlos Gómez", "rol": "Operador" }`
+- **Response `201 Created`**: `{ "success": true, "mensaje": "Usuario creado exitosamente", ... }`
 
 ---
 
 ## 3. Sucursales (`/v1/sucursales`) - Implementado en Fase 4A
 
-### GET `/v1/sucursales`
-Obtiene la lista de todas las sucursales activas.
-- **Response `200 OK`**:
-  ```json
-  {
-    "success": true,
-    "sucursales": [
-      { "id": 1, "nombre": "Sucursal Central", "direccion": "Zona 1, Guatemala", "telefono": "2222-1000" }
-    ]
-  }
-  ```
-
-### GET `/v1/sucursales/{id}`
-Obtiene una sucursal específica por su ID.
-- **Response `200 OK`**:
-  ```json
-  {
-    "success": true,
-    "sucursal": { "id": 1, "nombre": "Sucursal Central", "direccion": "Zona 1, Guatemala", "telefono": "2222-1000" }
-  }
-  ```
-- **Response `404 Not Found`**:
-  ```json
-  { "success": false, "mensaje": "Sucursal con ID 1 no encontrada o inactiva" }
-  ```
-
-### POST `/v1/sucursales`
-Crea una nueva sucursal con validación de nombre único.
-- **Request Body**:
-  ```json
-  { "nombre": "Sucursal Norte", "direccion": "Zona 18, Guatemala", "telefono": "2222-2000" }
-  ```
-- **Response `201 Created`**:
-  ```json
-  {
-    "success": true,
-    "mensaje": "Sucursal creada exitosamente",
-    "sucursal": { "id": 2, "nombre": "Sucursal Norte", "direccion": "Zona 18, Guatemala", "telefono": "2222-2000" }
-  }
-  ```
-- **Response `409 Conflict`**: Si ya existe una sucursal con el mismo nombre.
-
-### PUT `/v1/sucursales/{id}`
-Actualiza los datos de una sucursal existente.
-- **Request Body**:
-  ```json
-  { "nombre": "Sucursal Central Modificada", "direccion": "Zona 10, Guatemala", "telefono": "2333-9999" }
-  ```
-- **Response `200 OK`**:
-  ```json
-  {
-    "success": true,
-    "mensaje": "Sucursal actualizada exitosamente",
-    "sucursal": { "id": 1, "nombre": "Sucursal Central Modificada", "direccion": "Zona 10, Guatemala", "telefono": "2333-9999" }
-  }
-  ```
-
-### DELETE `/v1/sucursales/{id}`
-Realiza la baja lógica (`activo = false`) de una sucursal.
-- **Response `200 OK`**:
-  ```json
-  { "success": true, "mensaje": "Sucursal eliminada exitosamente (baja lógica)" }
-  ```
+### GET `/v1/sucursales` | GET `/v1/sucursales/{id}`
+### POST `/v1/sucursales` | PUT `/v1/sucursales/{id}` | DELETE `/v1/sucursales/{id}`
 
 ---
 
 ## 4. Clientes (`/v1/clientes`) - Implementado en Fase 4A
 
-### GET `/v1/clientes`
-Obtiene la lista de todos los clientes activos.
+### GET `/v1/clientes` | GET `/v1/clientes/{id}`
+### POST `/v1/clientes` | PUT `/v1/clientes/{id}` | DELETE `/v1/clientes/{id}`
+
+---
+
+## 5. Rutas (`/v1/rutas`) - Implementado en Fase 4B
+
+### GET `/v1/rutas`
+Obtiene la lista de todas las rutas activas.
 - **Response `200 OK`**:
   ```json
   {
     "success": true,
-    "clientes": [
-      { "id": 1, "nit": "123456-7", "nombre": "Corporación Alfa", "direccion": "Roosevelt Km 14", "telefono": "2444-1111" }
+    "rutas": [
+      {
+        "id": 1,
+        "idSucursalOrigen": 1,
+        "idSucursalDestino": 2,
+        "distanciaKm": 205.5,
+        "tarifaBase": 75.0
+      }
     ]
   }
   ```
 
-### GET `/v1/clientes/{id}`
-Obtiene un cliente por su ID.
+### GET `/v1/rutas/{id}`
+Obtiene una ruta por su ID.
 - **Response `200 OK`**:
   ```json
   {
     "success": true,
-    "cliente": { "id": 1, "nit": "123456-7", "nombre": "Corporación Alfa", "direccion": "Roosevelt Km 14", "telefono": "2444-1111" }
+    "ruta": {
+      "id": 1,
+      "idSucursalOrigen": 1,
+      "idSucursalDestino": 2,
+      "distanciaKm": 205.5,
+      "tarifaBase": 75.0
+    }
   }
   ```
+- **Response `404 Not Found`**: Si la ruta no existe o está inactiva.
 
-### POST `/v1/clientes`
-Crea un nuevo cliente con validación de NIT único.
+### POST `/v1/rutas`
+Crea una nueva ruta. Valida que las sucursales de origen y destino existan y estén activas en `data/sucursales.dat`, que el origen sea distinto al destino, y que no exista ruta duplicada.
 - **Request Body**:
-  ```json
-  { "nit": "123456-7", "nombre": "Corporación Alfa", "direccion": "Roosevelt Km 14", "telefono": "2444-1111" }
-  ```
-- **Response `201 Created`**:
   ```json
   {
-    "success": true,
-    "mensaje": "Cliente creado exitosamente",
-    "cliente": { "id": 1, "nit": "123456-7", "nombre": "Corporación Alfa", "direccion": "Roosevelt Km 14", "telefono": "2444-1111" }
+    "idSucursalOrigen": 1,
+    "idSucursalDestino": 2,
+    "distanciaKm": 205.5,
+    "tarifaBase": 75.0
   }
   ```
-- **Response `409 Conflict`**: Si ya existe un cliente con el mismo NIT.
+- **Response `201 Created`**: Devuelve el objeto `ruta` creado con su ID auto-incrementado.
+- **Response `404 Not Found`**: Si la sucursal de origen o destino no existe o está inactiva.
+- **Response `409 Conflict`**: Si ya existe una ruta activa entre el mismo origen y destino.
+- **Response `400 Bad Request`**: Si origen == destino o distanciaKm <= 0.
 
-### PUT `/v1/clientes/{id}`
-Actualiza los datos de un cliente existente.
+### PUT `/v1/rutas/{id}`
+Actualiza los datos de una ruta existente.
 - **Request Body**:
   ```json
-  { "nit": "123456-7", "nombre": "Corporación Alfa Modificada", "direccion": "Roosevelt Km 15", "telefono": "2444-9999" }
+  {
+    "idSucursalOrigen": 1,
+    "idSucursalDestino": 2,
+    "distanciaKm": 210.0,
+    "tarifaBase": 85.0
+  }
   ```
-- **Response `200 OK`**:
-  ```json
-  { "success": true, "mensaje": "Cliente actualizado exitosamente", "cliente": { ... } }
-  ```
+- **Response `200 OK`**: Ruta actualizada exitosamente.
 
-### DELETE `/v1/clientes/{id}`
-Realiza la baja lógica (`activo = false`) de un cliente.
-- **Response `200 OK`**:
-  ```json
-  { "success": true, "mensaje": "Cliente eliminado exitosamente (baja lógica)" }
-  ```
+### DELETE `/v1/rutas/{id}`
+Realiza la baja lógica (`activo = false`) de la ruta.
+- **Response `200 OK`**: `{ "success": true, "mensaje": "Ruta eliminada exitosamente (baja lógica)" }`
 
 ---
 
-## 5. Endpoints Pendientes (Próximas Fases)
+## 6. Vehículos (`/v1/vehiculos`) - Implementado en Fase 4B
 
-- `/v1/rutas` (Fase 4B)
-- `/v1/vehiculos` (Fase 4B)
-- `/v1/pilotos` (Fase 4B)
-- `/v1/tarifas` (Fase 4B)
+### GET `/v1/vehiculos`
+Obtiene la lista de vehículos activos.
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "vehiculos": [
+      {
+        "id": 1,
+        "placa": "P-123XYZ",
+        "marcaModelo": "Isuzu NPR 2024",
+        "capacidadPesoKg": 3500.0,
+        "capacidadVolumenM3": 18.5,
+        "estado": "Disponible"
+      }
+    ]
+  }
+  ```
+
+### GET `/v1/vehiculos/{id}`
+Obtiene un vehículo por su ID.
+- **Response `200 OK`**: Retorna el objeto `vehiculo`.
+- **Response `404 Not Found`**: Si no existe o está inactivo.
+
+### POST `/v1/vehiculos`
+Registra un nuevo vehículo con validación de placa única y estado permitido (`"Disponible"`, `"En ruta"`, `"En taller"`).
+- **Request Body**:
+  ```json
+  {
+    "placa": "P-123XYZ",
+    "marcaModelo": "Isuzu NPR 2024",
+    "capacidadPesoKg": 3500.0,
+    "capacidadVolumenM3": 18.5,
+    "estado": "Disponible"
+  }
+  ```
+- **Response `201 Created`**: Vehículo creado exitosamente.
+- **Response `409 Conflict`**: Si la placa ya está registrada.
+- **Response `400 Bad Request`**: Si el estado o las capacidades son inválidas.
+
+### PUT `/v1/vehiculos/{id}`
+Actualiza los datos o el estado de un vehículo existente.
+- **Request Body**:
+  ```json
+  {
+    "placa": "P-123XYZ",
+    "marcaModelo": "Isuzu NPR 2024",
+    "capacidadPesoKg": 3500.0,
+    "capacidadVolumenM3": 18.5,
+    "estado": "En ruta"
+  }
+  ```
+- **Response `200 OK`**: Vehículo actualizado exitosamente.
+
+### DELETE `/v1/vehiculos/{id}`
+Realiza la baja lógica (`activo = false`) del vehículo.
+- **Response `200 OK`**: `{ "success": true, "mensaje": "Vehículo eliminado exitosamente (baja lógica)" }`
+
+---
+
+## 7. Endpoints Pendientes (Próximas Fases)
+
+- `/v1/pilotos` (Fase 4C)
+- `/v1/tarifas` (Fase 4C)
 - `/v1/transacciones/guias` (Fase 5)
 - `/v1/transacciones/despacho` (Fase 5)
 - `/v1/reportes/*` (Fase 6)
