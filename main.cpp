@@ -10,6 +10,8 @@
 #include "clientes.h"
 #include "rutas.h"
 #include "vehiculos.h"
+#include "pilotos.h"
+#include "tarifas.h"
 
 void inicializarPersistencia() {
     Persistence::asegurarArchivo("data/usuarios.dat");
@@ -40,7 +42,7 @@ int main() {
         res["estado"] = "ok";
         res["mensaje"] = "Servidor UMG Express API en funcionamiento";
         res["version"] = "1.0.0";
-        res["fase"] = "Fase 4B - CRUD de Rutas y Vehículos completada";
+        res["fase"] = "Fase 4C - CRUD de Catálogos (Pilotos y Tarifas) completada";
         return crow::response(200, res);
     });
 
@@ -56,6 +58,8 @@ int main() {
         res["modulo_clientes"] = "OK";
         res["modulo_rutas"] = "OK";
         res["modulo_vehiculos"] = "OK";
+        res["modulo_pilotos"] = "OK";
+        res["modulo_tarifas"] = "OK";
         return crow::response(200, res);
     });
 
@@ -536,13 +540,7 @@ int main() {
 
         Vehiculo nuevo;
         std::string errorMsg;
-        std::string placa = body["placa"].s();
-        std::string marcaModelo = body["marcaModelo"].s();
-        double peso = body["capacidadPesoKg"].d();
-        double volumen = body["capacidadVolumenM3"].d();
-        std::string estado = body["estado"].s();
-
-        if (!Vehiculos::crearVehiculo(Vehiculos::DEFAULT_FILE_VEHICULOS, placa, marcaModelo, peso, volumen, estado, nuevo, errorMsg)) {
+        if (!Vehiculos::crearVehiculo(Vehiculos::DEFAULT_FILE_VEHICULOS, body["placa"].s(), body["marcaModelo"].s(), body["capacidadPesoKg"].d(), body["capacidadVolumenM3"].d(), body["estado"].s(), nuevo, errorMsg)) {
             res["success"] = false;
             res["mensaje"] = errorMsg;
             int code = (errorMsg.find("Ya existe") != std::string::npos) ? 409 : 400;
@@ -574,13 +572,7 @@ int main() {
 
         Vehiculo act;
         std::string errorMsg;
-        std::string placa = body["placa"].s();
-        std::string marcaModelo = body["marcaModelo"].s();
-        double peso = body["capacidadPesoKg"].d();
-        double volumen = body["capacidadVolumenM3"].d();
-        std::string estado = body["estado"].s();
-
-        if (!Vehiculos::actualizarVehiculo(Vehiculos::DEFAULT_FILE_VEHICULOS, id, placa, marcaModelo, peso, volumen, estado, act, errorMsg)) {
+        if (!Vehiculos::actualizarVehiculo(Vehiculos::DEFAULT_FILE_VEHICULOS, id, body["placa"].s(), body["marcaModelo"].s(), body["capacidadPesoKg"].d(), body["capacidadVolumenM3"].d(), body["estado"].s(), act, errorMsg)) {
             res["success"] = false;
             res["mensaje"] = errorMsg;
             int code = (errorMsg.find("no encontrado") != std::string::npos) ? 404 :
@@ -613,6 +605,248 @@ int main() {
 
         res["success"] = true;
         res["mensaje"] = "Vehículo eliminado exitosamente (baja lógica)";
+        return crow::response(200, res);
+    });
+
+    // -------------------------------------------------------------------------
+    // MÓDULO: PILOTOS (/v1/pilotos)
+    // -------------------------------------------------------------------------
+    CROW_ROUTE(app, "/v1/pilotos").methods(crow::HTTPMethod::GET)([]() {
+        std::vector<Piloto> lista = Pilotos::listarPilotos(Pilotos::DEFAULT_FILE_PILOTOS);
+        crow::json::wvalue::list jsonList;
+        for (const auto& p : lista) {
+            crow::json::wvalue item;
+            item["id"] = p.id;
+            item["nombre"] = std::string(p.nombre);
+            item["licencia"] = std::string(p.licencia);
+            item["telefono"] = std::string(p.telefono);
+            jsonList.push_back(std::move(item));
+        }
+        crow::json::wvalue res;
+        res["success"] = true;
+        res["pilotos"] = std::move(jsonList);
+        return crow::response(200, res);
+    });
+
+    CROW_ROUTE(app, "/v1/pilotos/<int>").methods(crow::HTTPMethod::GET)([](int id) {
+        Piloto p;
+        crow::json::wvalue res;
+        if (!Pilotos::obtenerPilotoPorId(Pilotos::DEFAULT_FILE_PILOTOS, id, p)) {
+            res["success"] = false;
+            res["mensaje"] = "Piloto con ID " + std::to_string(id) + " no encontrado o inactivo";
+            return crow::response(404, res);
+        }
+        crow::json::wvalue pJson;
+        pJson["id"] = p.id;
+        pJson["nombre"] = std::string(p.nombre);
+        pJson["licencia"] = std::string(p.licencia);
+        pJson["telefono"] = std::string(p.telefono);
+
+        res["success"] = true;
+        res["piloto"] = std::move(pJson);
+        return crow::response(200, res);
+    });
+
+    CROW_ROUTE(app, "/v1/pilotos").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        crow::json::wvalue res;
+        auto body = crow::json::load(req.body);
+        if (!body || !body.has("nombre") || !body.has("licencia") || !body.has("telefono")) {
+            res["success"] = false;
+            res["mensaje"] = "Se requieren los campos: nombre, licencia, telefono";
+            return crow::response(400, res);
+        }
+
+        Piloto nuevo;
+        std::string errorMsg;
+        if (!Pilotos::crearPiloto(Pilotos::DEFAULT_FILE_PILOTOS, body["nombre"].s(), body["licencia"].s(), body["telefono"].s(), nuevo, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            int code = (errorMsg.find("Ya existe") != std::string::npos) ? 409 : 400;
+            return crow::response(code, res);
+        }
+
+        crow::json::wvalue pJson;
+        pJson["id"] = nuevo.id;
+        pJson["nombre"] = std::string(nuevo.nombre);
+        pJson["licencia"] = std::string(nuevo.licencia);
+        pJson["telefono"] = std::string(nuevo.telefono);
+
+        res["success"] = true;
+        res["mensaje"] = "Piloto creado exitosamente";
+        res["piloto"] = std::move(pJson);
+        return crow::response(201, res);
+    });
+
+    CROW_ROUTE(app, "/v1/pilotos/<int>").methods(crow::HTTPMethod::PUT)([](const crow::request& req, int id) {
+        crow::json::wvalue res;
+        auto body = crow::json::load(req.body);
+        if (!body || !body.has("nombre") || !body.has("licencia") || !body.has("telefono")) {
+            res["success"] = false;
+            res["mensaje"] = "Se requieren los campos: nombre, licencia, telefono";
+            return crow::response(400, res);
+        }
+
+        Piloto act;
+        std::string errorMsg;
+        if (!Pilotos::actualizarPiloto(Pilotos::DEFAULT_FILE_PILOTOS, id, body["nombre"].s(), body["licencia"].s(), body["telefono"].s(), act, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            int code = (errorMsg.find("no encontrado") != std::string::npos) ? 404 :
+                       (errorMsg.find("Ya existe") != std::string::npos) ? 409 : 400;
+            return crow::response(code, res);
+        }
+
+        crow::json::wvalue pJson;
+        pJson["id"] = act.id;
+        pJson["nombre"] = std::string(act.nombre);
+        pJson["licencia"] = std::string(act.licencia);
+        pJson["telefono"] = std::string(act.telefono);
+
+        res["success"] = true;
+        res["mensaje"] = "Piloto actualizado exitosamente";
+        res["piloto"] = std::move(pJson);
+        return crow::response(200, res);
+    });
+
+    CROW_ROUTE(app, "/v1/pilotos/<int>").methods(crow::HTTPMethod::DELETE)([](int id) {
+        crow::json::wvalue res;
+        std::string errorMsg;
+        if (!Pilotos::eliminarPiloto(Pilotos::DEFAULT_FILE_PILOTOS, id, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            return crow::response(404, res);
+        }
+
+        res["success"] = true;
+        res["mensaje"] = "Piloto eliminado exitosamente (baja lógica)";
+        return crow::response(200, res);
+    });
+
+    // -------------------------------------------------------------------------
+    // MÓDULO: TARIFAS (/v1/tarifas)
+    // -------------------------------------------------------------------------
+    CROW_ROUTE(app, "/v1/tarifas").methods(crow::HTTPMethod::GET)([]() {
+        std::vector<Tarifa> lista = Tarifas::listarTarifas(Tarifas::DEFAULT_FILE_TARIFAS);
+        crow::json::wvalue::list jsonList;
+        for (const auto& t : lista) {
+            crow::json::wvalue item;
+            item["id"] = t.id;
+            item["tipoCarga"] = std::string(t.tipoCarga);
+            item["precioPorKg"] = t.precioPorKg;
+            item["precioPorM3"] = t.precioPorM3;
+            item["recargoEspecial"] = t.recargoEspecial;
+            jsonList.push_back(std::move(item));
+        }
+        crow::json::wvalue res;
+        res["success"] = true;
+        res["tarifas"] = std::move(jsonList);
+        return crow::response(200, res);
+    });
+
+    CROW_ROUTE(app, "/v1/tarifas/<int>").methods(crow::HTTPMethod::GET)([](int id) {
+        Tarifa t;
+        crow::json::wvalue res;
+        if (!Tarifas::obtenerTarifaPorId(Tarifas::DEFAULT_FILE_TARIFAS, id, t)) {
+            res["success"] = false;
+            res["mensaje"] = "Tarifa con ID " + std::to_string(id) + " no encontrada o inactiva";
+            return crow::response(404, res);
+        }
+        crow::json::wvalue tJson;
+        tJson["id"] = t.id;
+        tJson["tipoCarga"] = std::string(t.tipoCarga);
+        tJson["precioPorKg"] = t.precioPorKg;
+        tJson["precioPorM3"] = t.precioPorM3;
+        tJson["recargoEspecial"] = t.recargoEspecial;
+
+        res["success"] = true;
+        res["tarifa"] = std::move(tJson);
+        return crow::response(200, res);
+    });
+
+    CROW_ROUTE(app, "/v1/tarifas").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        crow::json::wvalue res;
+        auto body = crow::json::load(req.body);
+        if (!body || !body.has("tipoCarga") || !body.has("precioPorKg") || !body.has("precioPorM3") || !body.has("recargoEspecial")) {
+            res["success"] = false;
+            res["mensaje"] = "Se requieren los campos: tipoCarga, precioPorKg, precioPorM3, recargoEspecial";
+            return crow::response(400, res);
+        }
+
+        Tarifa nueva;
+        std::string errorMsg;
+        std::string tipoCarga = body["tipoCarga"].s();
+        double pkg = body["precioPorKg"].d();
+        double pm3 = body["precioPorM3"].d();
+        double recargo = body["recargoEspecial"].d();
+
+        if (!Tarifas::crearTarifa(Tarifas::DEFAULT_FILE_TARIFAS, tipoCarga, pkg, pm3, recargo, nueva, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            int code = (errorMsg.find("Ya existe") != std::string::npos) ? 409 : 400;
+            return crow::response(code, res);
+        }
+
+        crow::json::wvalue tJson;
+        tJson["id"] = nueva.id;
+        tJson["tipoCarga"] = std::string(nueva.tipoCarga);
+        tJson["precioPorKg"] = nueva.precioPorKg;
+        tJson["precioPorM3"] = nueva.precioPorM3;
+        tJson["recargoEspecial"] = nueva.recargoEspecial;
+
+        res["success"] = true;
+        res["mensaje"] = "Tarifa creada exitosamente";
+        res["tarifa"] = std::move(tJson);
+        return crow::response(201, res);
+    });
+
+    CROW_ROUTE(app, "/v1/tarifas/<int>").methods(crow::HTTPMethod::PUT)([](const crow::request& req, int id) {
+        crow::json::wvalue res;
+        auto body = crow::json::load(req.body);
+        if (!body || !body.has("tipoCarga") || !body.has("precioPorKg") || !body.has("precioPorM3") || !body.has("recargoEspecial")) {
+            res["success"] = false;
+            res["mensaje"] = "Se requieren los campos: tipoCarga, precioPorKg, precioPorM3, recargoEspecial";
+            return crow::response(400, res);
+        }
+
+        Tarifa act;
+        std::string errorMsg;
+        std::string tipoCarga = body["tipoCarga"].s();
+        double pkg = body["precioPorKg"].d();
+        double pm3 = body["precioPorM3"].d();
+        double recargo = body["recargoEspecial"].d();
+
+        if (!Tarifas::actualizarTarifa(Tarifas::DEFAULT_FILE_TARIFAS, id, tipoCarga, pkg, pm3, recargo, act, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            int code = (errorMsg.find("no encontrada") != std::string::npos) ? 404 :
+                       (errorMsg.find("Ya existe") != std::string::npos) ? 409 : 400;
+            return crow::response(code, res);
+        }
+
+        crow::json::wvalue tJson;
+        tJson["id"] = act.id;
+        tJson["tipoCarga"] = std::string(act.tipoCarga);
+        tJson["precioPorKg"] = act.precioPorKg;
+        tJson["precioPorM3"] = act.precioPorM3;
+        tJson["recargoEspecial"] = act.recargoEspecial;
+
+        res["success"] = true;
+        res["mensaje"] = "Tarifa actualizada exitosamente";
+        res["tarifa"] = std::move(tJson);
+        return crow::response(200, res);
+    });
+
+    CROW_ROUTE(app, "/v1/tarifas/<int>").methods(crow::HTTPMethod::DELETE)([](int id) {
+        crow::json::wvalue res;
+        std::string errorMsg;
+        if (!Tarifas::eliminarTarifa(Tarifas::DEFAULT_FILE_TARIFAS, id, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            return crow::response(404, res);
+        }
+
+        res["success"] = true;
+        res["mensaje"] = "Tarifa eliminada exitosamente (baja lógica)";
         return crow::response(200, res);
     });
 
