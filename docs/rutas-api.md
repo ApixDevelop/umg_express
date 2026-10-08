@@ -169,8 +169,98 @@ Realiza la baja lógica (`activo = false`) de la tarifa.
 
 ---
 
-## 9. Endpoints Pendientes (Próximas Fases)
+## 9. Transacciones - Guías (`/v1/transacciones/guias`) - Implementado en Fase 5A
 
-- `/v1/transacciones/guias` (Fase 5)
-- `/v1/transacciones/despacho` (Fase 5)
-- `/v1/reportes/*` (Fase 6)
+### POST `/v1/transacciones/guias`
+Emite una nueva guía de envío con numeración correlativa automática (iniciando en 1001).
+
+- **Validaciones**:
+  - `idClienteRemitente` debe ser un cliente activo y existente.
+  - `idClienteDestinatario` debe ser un cliente activo y existente.
+  - `idClienteRemitente` y `idClienteDestinatario` deben ser diferentes.
+  - `idRuta` debe ser una ruta activa y existente.
+  - `peso` (kg), `alto`, `ancho` y `largo` (cm) deben ser numéricos mayores a 0.
+  - `tipoCarga`, `contenido` y `direccionEntrega` son obligatorios.
+
+- **Request Body**:
+  ```json
+  {
+    "idClienteRemitente": 1,
+    "idClienteDestinatario": 2,
+    "idRuta": 1,
+    "tipoCarga": "Estándar",
+    "contenido": "Caja de documentos",
+    "direccionEntrega": "Zona 10, Ciudad de Guatemala",
+    "peso": 5.5,
+    "alto": 20.0,
+    "ancho": 30.0,
+    "largo": 40.0
+  }
+  ```
+- **Response `201 Created`**:
+  ```json
+  {
+    "success": true,
+    "mensaje": "Guía emitida exitosamente",
+    "guia": {
+      "numeroGuia": 1001,
+      "idClienteRemitente": 1,
+      "idClienteDestinatario": 2,
+      "idRuta": 1,
+      "tipoCarga": "Estándar",
+      "contenido": "Caja de documentos",
+      "direccionEntrega": "Zona 10, Ciudad de Guatemala",
+      "peso": 5.5,
+      "alto": 20.0,
+      "ancho": 30.0,
+      "largo": 40.0,
+      "estado": "Creada",
+      "fechaEmision": "2026-10-08 14:00:00"
+    }
+  }
+  ```
+- **Response `400 Bad Request`**: Si faltan campos obligatorios, las dimensiones/peso son <= 0, o los clientes remitente y destinatario son idénticos.
+- **Response `404 Not Found`**: Si el cliente remitente, cliente destinatario o ruta no existen o están inactivos.
+
+### GET `/v1/transacciones/guias`
+Obtiene el listado completo de guías activas emitidas en el sistema.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "guias": [
+      {
+        "numeroGuia": 1001,
+        "idClienteRemitente": 1,
+        "idClienteDestinatario": 2,
+        "idRuta": 1,
+        "tipoCarga": "Estándar",
+        "contenido": "Caja de documentos",
+        "direccionEntrega": "Zona 10, Ciudad de Guatemala",
+        "peso": 5.5,
+        "alto": 20.0,
+        "ancho": 30.0,
+        "largo": 40.0,
+        "estado": "Creada",
+        "fechaEmision": "2026-10-08 14:00:00"
+      }
+    ]
+  }
+  ```
+
+### GET `/v1/transacciones/guias/{numeroGuia}`
+Busca una guía específica por su número correlativo de guía (`numeroGuia`).
+
+- **Response `200 OK`**: Devuelve el objeto `guia` completo.
+- **Response `404 Not Found`**: Si no existe la guía o se encuentra inactiva.
+
+---
+
+## 10. Endpoints Pendientes (Próximas Fases)
+
+- `/v1/transacciones/despacho` (Fase 5B)
+- `/v1/reportes/rastreo/{numeroGuia}` (Fase 6)
+- `/v1/reportes/manifiesto/{idVehiculo}` (Fase 6)
+- `/v1/reportes/liquidacion` (Fase 6)
+

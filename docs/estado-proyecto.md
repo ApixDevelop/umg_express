@@ -2,9 +2,9 @@
 
 ## Información General
 - **Proyecto**: UMG Express (Sistema Logístico y de Paquetería)
-- **Fase Actual**: Fase 4C — CRUD de Pilotos y Tarifas (Mantenimientos completados)
+- **Fase Actual**: Fase 5A — Emisión de Guías
 - **Estado de la Fase**: Completada
-- **Próxima Fase**: Fase 5 — Transacciones (Guías y Despacho) (Pendiente de autorización)
+- **Próxima Fase**: Fase 5B — Despacho y Operaciones (Pendiente de autorización)
 
 ---
 
@@ -57,32 +57,36 @@
 - **Estado**: COMPLETADA
 - **Trabajo Realizado**:
   - Implementación de la lógica de negocio y persistencia para Pilotos en `include/pilotos.h`.
-    - Operaciones: Crear, Listar activos, Consultar por ID, Actualizar por ID y Baja lógica (`activo = false`).
-    - Validaciones: Campos requeridos, límites de longitud y número de licencia único.
   - Implementación de la lógica de negocio y persistencia para Tarifas en `include/tarifas.h`.
-    - Operaciones: Crear, Listar activas, Consultar por ID, Actualizar por ID y Baja lógica (`activo = false`).
-    - Validaciones: Tipo de carga único, precios por kg y por m3 no negativos, y recargos especiales no negativos.
-  - Implementación de endpoints REST en Crow (`main.cpp`):
-    - `GET /v1/pilotos` (200 OK)
-    - `GET /v1/pilotos/{id}` (200 OK / 404 Not Found)
-    - `POST /v1/pilotos` (201 Created / 409 Conflict / 400 Bad Request)
-    - `PUT /v1/pilotos/{id}` (200 OK / 404 Not Found / 409 Conflict)
-    - `DELETE /v1/pilotos/{id}` (200 OK / 404 Not Found)
-    - `GET /v1/tarifas` (200 OK)
-    - `GET /v1/tarifas/{id}` (200 OK / 404 Not Found)
-    - `POST /v1/tarifas` (201 Created / 409 Conflict / 400 Bad Request)
-    - `PUT /v1/tarifas/{id}` (200 OK / 404 Not Found / 409 Conflict)
-    - `DELETE /v1/tarifas/{id}` (200 OK / 404 Not Found)
+  - Implementación de endpoints REST en Crow (`main.cpp`).
   - Suite de pruebas unitarias en `tests/test_pilotos_tarifas.cpp`.
-  - Documentación técnica actualizada en `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
+
+### Fase 5A — Emisión de Guías
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Implementación de la entidad `Guia` en `include/structs.h` y persistencia binaria en `data/guias.dat` (`include/persistence.h`).
+  - Desarrollo de la lógica de negocio en `include/transacciones.h`:
+    - Generación correlativa auto-incremental de números de guía iniciando en `1001`.
+    - Validaciones relacionales: `idClienteRemitente` y `idClienteDestinatario` deben existir y estar activos (`activo = true`).
+    - Validación de diferencia de clientes: `idClienteRemitente != idClienteDestinatario`.
+    - Validación de ruta: `idRuta` debe existir y estar activa (`activo = true`).
+    - Validaciones de formato: peso > 0, dimensiones > 0, campos no vacíos.
+    - Consulta de listado de guías y búsqueda por número de guía.
+  - Implementación de endpoints REST HTTP en Crow (`main.cpp`):
+    - `POST /v1/transacciones/guias` (201 Created / 400 Bad Request / 404 Not Found)
+    - `GET /v1/transacciones/guias` (200 OK)
+    - `GET /v1/transacciones/guias/{numeroGuia}` (200 OK / 404 Not Found)
+  - Suite de pruebas unitarias en `tests/test_guias.cpp` (`test_guias`).
+  - Documentación técnica creada y actualizada en `docs/guias.md`, `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
 - **Pruebas Realizadas**:
-  - Pruebas unitarias completas ejecutando `./test_pilotos_tarifas` (0 errores).
-  - Peticiones HTTP reales ejecutadas mediante `curl` a todos los verbos HTTP (`GET`, `POST`, `PUT`, `DELETE`) para `/v1/pilotos` y `/v1/tarifas`.
+  - Pruebas unitarias ejecutadas mediante `./test_guias` (0 errores).
+  - Peticiones HTTP reales ejecutadas vía `curl` contra el servidor en vivo en `127.0.0.1:18080`.
   - Recompilación limpia verificada con `./build.sh`.
 - **Decisiones Importantes**:
-  - Tarifas parametrizadas por `tipoCarga` con campos explícitos para precio por peso (`precioPorKg`), precio por volumen (`precioPorM3`) y `recargoEspecial` preparadas para el consumo inmediato en el cálculo de costos de guías de la Fase 5.
+  - `Guia` utiliza `numeroGuia` como clave primaria para búsquedas y consultas directas en lugar de `id`.
+  - Se mantuvo fuera del alcance de la Fase 5A el peso volumétrico, el cálculo de costos, la asignación de vehículos y el despacho según las restricciones acordadas.
 - **Problemas Pendientes**:
-  - Ninguno. Todos los mantenimientos de catálogos (Fase 4 completa) están 100% probados y funcionales.
+  - Ninguno. La emisión y consulta de guías está 100% probada y funcional.
 
 ---
 
@@ -97,8 +101,10 @@
 | **Fase 4A** | CRUD de Sucursales y Clientes (`include/sucursales.h`, `include/clientes.h`, API REST) | **Completada** |
 | **Fase 4B** | CRUD de Rutas y Vehículos (`include/rutas.h`, `include/vehiculos.h`, API REST) | **Completada** |
 | **Fase 4C** | CRUD de Pilotos y Tarifas (`include/pilotos.h`, `include/tarifas.h`, API REST) | **Completada** |
-| **Fase 5** | Transacciones (Guías, Despacho, validaciones de peso/volumen) | Pendiente |
+| **Fase 5A** | Emisión y consulta de Guías (`include/transacciones.h`, `guias.dat`, API REST) | **Completada** |
+| **Fase 5B** | Despacho y Operaciones (Asignación de vehículos, peso volumétrico, capacidad, costo) | Pendiente |
 | **Fase 6** | Reportes (Rastreo, Manifiestos, Liquidación) | Pendiente |
 | **Fase 7** | API completa e integración con React | Pendiente |
 | **Fase 8** | Pruebas y estabilización | Pendiente |
 | **Fase 9** | Documentación y revisión final | Pendiente |
+
