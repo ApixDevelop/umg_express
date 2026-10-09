@@ -82,40 +82,119 @@ umgExpress/
 
 Para compilar y ejecutar UMG Express se requiere:
 
-1. **Sistema Operativo:** macOS Darwin (arm64 / x86_64) o Linux.
-2. **Compilador C++17:** `Apple Clang` (v12.0+) o `GCC` (v9.0+).
-3. **Encabezados de Crow y Asio:** Crow HTTP Framework instalado en la ruta del compilador (por ejemplo, `/usr/local/include` o `/opt/homebrew/include`).
+1. **Sistema Operativo Compatible:**
+   - **macOS:** Darwin (arm64 / x86_64).
+   - **Linux:** Ubuntu, Debian, Fedora, Arch Linux.
+   - **Windows 10 / Windows 11:** Mediante WSL2 (Windows Subsystem for Linux), MinGW-w64 / MSYS2, o Git Bash con GCC.
+2. **Compilador C++17:** `Apple Clang` (v12.0+), `GCC` (v9.0+), o `MSVC` (Visual Studio 2019/2022).
+3. **Encabezados de Crow y Asio:** Crow HTTP Framework instalado en las rutas estándar del compilador (e.g. `/usr/local/include`, `/opt/homebrew/include`, o la carpeta `include` del proyecto).
 
 ---
 
 ## 5. Instrucciones de Compilación y Ejecución
 
-### 5.1 Compilación del Proyecto
-Ejecute el script de compilación nativo disponible en la raíz del proyecto:
+### 5.1 En macOS y Linux (Nativo)
 
+#### Compilación
 ```bash
 chmod +x build.sh
 ./build.sh
 ```
+El script compilará `main.cpp` generando el binario `./server` y los 6 ejecutables de prueba (`./test_calculos`, `./test_despacho`, `./test_reporte_rastreo`, `./test_reporte_manifiesto`, `./test_reporte_liquidacion`, `./test_integracion_api`).
 
-El script compilara `main.cpp` generando el binario `./server` y compilará automáticamente los executables de prueba (`./test_calculos`, `./test_despacho`, `./test_reporte_rastreo`, `./test_reporte_manifiesto`, `./test_reporte_liquidacion`, `./test_integracion_api`).
-
-### 5.2 Iniciar el Servidor HTTP
-Para ejecutar el backend de UMG Express:
-
+#### Iniciar Servidor
 ```bash
 ./server
 ```
 
-Salida esperada por consola:
+---
+
+### 5.2 En Windows 10 y Windows 11
+
+Existen dos alternativas recomendadas para compilar y ejecutar UMG Express en Windows 10 y 11:
+
+#### Opción A: WSL2 (Windows Subsystem for Linux) — *Recomendada*
+WSL2 ofrece el entorno C++17 Linux nativo más estable e idéntico al de producción.
+
+1. **Instalar WSL2 (si no está instalado):**  
+   Abra una ventana de **PowerShell** o **Símbolo del sistema (CMD)** como Administrador y ejecute:
+   ```cmd
+   wsl --install
+   ```
+   Reinicie su equipo si Windows se lo solicita.
+
+2. **Instalar compilador C++ y librerías en Ubuntu/WSL:**  
+   Abra la terminal de Ubuntu / WSL y ejecute:
+   ```bash
+   sudo apt update && sudo apt install -y build-essential g++ clang libasio-dev git
+   ```
+
+3. **Compilar y Ejecutar UMG Express:**  
+   Navegue a la carpeta del proyecto en su disco de Windows (e.g. `C:\Uni\umgExpress` mapeado en `/mnt/c/Uni/umgExpress`):
+   ```bash
+   cd /mnt/c/Uni/umgExpress
+   chmod +x build.sh
+   ./build.sh
+   ./server
+   ```
+
+---
+
+#### Opción B: Entorno Nativo de Windows (MinGW-w64 / MSYS2 / Git Bash)
+Si prefiere trabajar directamente en la consola de Windows (PowerShell, CMD o Git Bash) sin WSL:
+
+1. **Instalar MinGW-w64 (GCC para Windows):**
+   - Descargue e instale [MSYS2](https://www.msys2.org/) o un instalador de MinGW-w64 con GCC 9+.
+   - En la terminal de MSYS2, instale el compilador GCC y Asio:
+     ```bash
+     pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-asio
+     ```
+   - Agregue la ruta de MinGW `C:\msys64\ucrt64\bin` a la variable de entorno `PATH` de Windows.
+
+2. **Compilar desde PowerShell / CMD / Git Bash:**  
+   Debido a que en Windows la librería de sockets requiere enlace con Winsock (`ws2_32`), ejecute:
+
+   * **Compilar Servidor en Windows (PowerShell / CMD):**
+     ```cmd
+     g++ -std=c++17 -Iinclude main.cpp -o server.exe -lws2_32 -lmswsock
+     ```
+   * **Compilar Ejecutables de Pruebas:**
+     ```cmd
+     g++ -std=c++17 -Iinclude tests/test_calculos.cpp -o test_calculos.exe
+     g++ -std=c++17 -Iinclude tests/test_despacho.cpp -o test_despacho.exe
+     g++ -std=c++17 -Iinclude tests/test_reporte_rastreo.cpp -o test_reporte_rastreo.exe
+     g++ -std=c++17 -Iinclude tests/test_reporte_manifiesto.cpp -o test_reporte_manifiesto.exe
+     g++ -std=c++17 -Iinclude tests/test_reporte_liquidacion.cpp -o test_reporte_liquidacion.exe
+     g++ -std=c++17 -Iinclude tests/test_integracion_api.cpp -o test_integracion_api.exe
+     ```
+
+3. **Iniciar el Servidor en Windows:**
+   ```cmd
+   .\server.exe
+   ```
+
+---
+
+#### Opción C: Visual Studio 2022 (Developer Command Prompt)
+Si utiliza el compilador de Microsoft (MSVC):
+
+```cmd
+cl /std:c++17 /EHsc /Iinclude main.cpp /Fe:server.exe ws2_32.lib mswsock.lib
+.\server.exe
+```
+
+---
+
+### 5.3 Salida Esperada al Iniciar el Servidor
+En cualquier plataforma (macOS, Linux o Windows), al iniciar el servidor verá:
 ```text
 === UMG Express Server (Crow HTTP API REST / C++17) ===
 Servidor escuchando en http://127.0.0.1:18080
 Prefijo base de API: /v1/
 ```
 
-### 5.3 Detener el Servidor
-Presione `Ctrl + C` en la terminal donde se ejecuta el servidor.
+### 5.4 Detener el Servidor
+Presione `Ctrl + C` en la terminal donde se está ejecutando el servidor.
 
 ---
 
