@@ -942,8 +942,96 @@ int main() {
         return crow::response(201, res);
     });
 
+    // -------------------------------------------------------------------------
+    // MÓDULO: TRANSACCIONES / DESPACHO (/v1/transacciones/despacho)
+    // -------------------------------------------------------------------------
+    CROW_ROUTE(app, "/v1/transacciones/despacho").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        crow::json::wvalue res;
+        auto body = crow::json::load(req.body);
+        if (!body || !body.has("idVehiculo")) {
+            res["success"] = false;
+            res["mensaje"] = "El campo 'idVehiculo' es obligatorio";
+            return crow::response(400, res);
+        }
+
+        int idVehiculo = body["idVehiculo"].i();
+        int idPiloto = body.has("idPiloto") ? body["idPiloto"].i() : 0;
+
+        std::vector<int> numerosGuias;
+        if (body.has("guias") && body["guias"].t() == crow::json::type::List) {
+            for (const auto& g : body["guias"]) {
+                numerosGuias.push_back(g.i());
+            }
+        } else if (body.has("numerosGuias") && body["numerosGuias"].t() == crow::json::type::List) {
+            for (const auto& g : body["numerosGuias"]) {
+                numerosGuias.push_back(g.i());
+            }
+        } else if (body.has("numeroGuia")) {
+            numerosGuias.push_back(body["numeroGuia"].i());
+        }
+
+        if (numerosGuias.empty()) {
+            res["success"] = false;
+            res["mensaje"] = "Se requiere al menos un número de guía en 'guias', 'numerosGuias' o 'numeroGuia'";
+            return crow::response(400, res);
+        }
+
+        Despachos::ResultadoDespacho resultado;
+        std::string errorMsg;
+        if (!Despachos::procesarDespacho(Despachos::DEFAULT_FILE_DESPACHOS,
+                                         Guias::DEFAULT_FILE_GUIAS,
+                                         Vehiculos::DEFAULT_FILE_VEHICULOS,
+                                         Pilotos::DEFAULT_FILE_PILOTOS,
+                                         idVehiculo, idPiloto, numerosGuias, resultado, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            int code = (errorMsg.find("no existe") != std::string::npos) ? 404 : 400;
+            return crow::response(code, res);
+        }
+
+        crow::json::wvalue dJson;
+        dJson["idVehiculo"] = resultado.idVehiculo;
+        dJson["idPiloto"] = resultado.idPiloto;
+        dJson["totalGuias"] = resultado.totalGuias;
+        dJson["pesoTotalKg"] = resultado.pesoTotalKg;
+        dJson["volumenTotalM3"] = resultado.volumenTotalM3;
+        dJson["estadoVehiculo"] = resultado.estadoVehiculo;
+        
+        crow::json::wvalue::list gList;
+        for (int ng : resultado.guiasDespachadas) {
+            gList.push_back(ng);
+        }
+        dJson["guiasDespachadas"] = std::move(gList);
+
+        res["success"] = true;
+        res["mensaje"] = "Despacho realizado exitosamente y vehículo actualizado a 'En ruta'";
+        res["despacho"] = std::move(dJson);
+        return crow::response(201, res);
+    });
+
+    CROW_ROUTE(app, "/v1/transacciones/despacho").methods(crow::HTTPMethod::GET)([]() {
+        std::vector<Despacho> lista = Despachos::listarDespachos(Despachos::DEFAULT_FILE_DESPACHOS);
+        crow::json::wvalue::list jsonList;
+        for (const auto& d : lista) {
+            crow::json::wvalue item;
+            item["id"] = d.id;
+            item["idVehiculo"] = d.idVehiculo;
+            item["idPiloto"] = d.idPiloto;
+            item["numeroGuia"] = d.numeroGuia;
+            item["pesoKg"] = d.pesoKg;
+            item["volumenM3"] = d.volumenM3;
+            item["fechaDespacho"] = std::string(d.fechaDespacho);
+            jsonList.push_back(std::move(item));
+        }
+        crow::json::wvalue res;
+        res["success"] = true;
+        res["despachos"] = std::move(jsonList);
+        return crow::response(200, res);
+    });
+
     std::cout << "Servidor UMG Express escuchando en puerto 18080..." << std::endl;
     app.bindaddr("127.0.0.1").port(18080).multithreaded().run();
 
     return 0;
 }
+
