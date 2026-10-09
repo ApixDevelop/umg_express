@@ -125,7 +125,7 @@ void probarFlujoCompletoIntegracion() {
     Guia gError;
     bool okSameClient = Guias::crearGuia(FILE_GUIAS_INT, FILE_CLIENTES_INT, FILE_RUTAS_INT, FILE_TARIFAS_INT, cRem.id, cRem.id, r1.id, 10.0, 10.0, 10.0, 10.0, 0, "", gError, err);
     assert(!okSameClient);
-    assert(err.find("diferentes") != std::string::npos);
+    assert(err.find("mismo") != std::string::npos);
 
     std::cout << "  -> OK: Guías emitidas con numeración correlativa y fórmulas validadas." << std::endl;
 
