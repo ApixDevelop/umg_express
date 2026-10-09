@@ -219,8 +219,6 @@ inline bool obtenerManifiestoVehiculo(const char* vehiculosFilepath,
     return true;
 }
 
-#include <map>
-
 struct ResumenEstadoLiquidacion {
     std::string estado;
     int cantidadGuias;
