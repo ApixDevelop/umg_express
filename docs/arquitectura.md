@@ -1,9 +1,10 @@
 # Arquitectura - UMG Express
 
-## 1. Estructura del Proyecto (Fase 6C)
+## 1. Estructura del Proyecto (Fase 9 — Final)
 
 ```text
 umgExpress/
+├── README.md                # Guía general de instalación, ejecución, pruebas y defensa académica
 ├── main.cpp                 # Punto de entrada HTTP y servidor Crow (rutas base, auth, catálogos, guías, despacho y reportes)
 ├── build.sh                 # Script de compilación C++17 (sin CMake)
 ├── server                   # Ejecutable principal del servidor
@@ -18,6 +19,7 @@ umgExpress/
 ├── test_reporte_rastreo    # Pruebas unitarias de reporte de rastreo de guías (Fase 6A)
 ├── test_reporte_manifiesto # Pruebas unitarias de reporte de manifiesto de vehículo (Fase 6B)
 ├── test_reporte_liquidacion # Pruebas unitarias de reporte de liquidación financiera (Fase 6C)
+├── test_integracion_api    # Prueba de integración End-to-End de la API (Fase 7)
 ├── include/                 # Encabezados modulares
 │   ├── structs.h            # Estructuras de tamaño fijo para archivos binarios .dat
 │   ├── persistence.h        # Motor genérico de persistencia binaria (stdio)
@@ -41,7 +43,8 @@ umgExpress/
 │   ├── test_despacho.cpp            # Pruebas de despacho y límites de capacidad (Fase 5C)
 │   ├── test_reporte_rastreo.cpp     # Pruebas de reporte de rastreo (Fase 6A)
 │   ├── test_reporte_manifiesto.cpp  # Pruebas de reporte de manifiesto (Fase 6B)
-│   └── test_reporte_liquidacion.cpp # Pruebas de reporte de liquidación (Fase 6C)
+│   ├── test_reporte_liquidacion.cpp # Pruebas de reporte de liquidación (Fase 6C)
+│   └── test_integracion_api.cpp     # Prueba de integración End-to-End de la API (Fase 7)
 ├── data/                    # Directorio de persistencia binaria .dat
 │   ├── usuarios.dat
 │   ├── sucursales.dat
@@ -62,8 +65,10 @@ umgExpress/
     ├── reporte-rastreo.md
     ├── reporte-manifiesto.md
     ├── reporte-liquidacion.md
+    ├── api.md
     ├── rutas-api.md
     ├── reglas-negocio.md
+    ├── pruebas.md
     └── estado-proyecto.md
 ```
 

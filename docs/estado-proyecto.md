@@ -2,9 +2,9 @@
 
 ## Información General
 - **Proyecto**: UMG Express (Sistema Logístico y de Paquetería)
-- **Fase Actual**: Fase 6C — Reporte de liquidación
+- **Fase Actual**: Fase 9 — Documentación final y preparación de entrega
 - **Estado de la Fase**: Completada
-- **Próxima Fase**: Fase 7 — API completa e integración con React (Pendiente de autorización)
+- **Próxima Fase**: Frontend React / Entrega Académica Final (Pendiente de autorización)
 
 ---
 
@@ -101,22 +101,52 @@
 ### Fase 6C — Reporte de Liquidación Financiera
 - **Estado**: COMPLETADA
 - **Trabajo Realizado**:
-  - Implementación del módulo `Reportes::obtenerReporteLiquidacion` en `include/reportes.h`.
-  - Consolidación financiera y de volumen de guías, acumulando `costoTotal` pre-registrado y agrupando por estado, ruta y sucursal de origen.
-  - Exclusión adecuada de guías inactivas (`activo == false`) de la sumatoria facturada para no distorsionar ingresos.
-  - Reporte explícito de `cobradoConfirmado: 0.0` con aclaración fundamentada de la ausencia de módulo de caja/pagos post-entrega.
-  - Implementación del endpoint HTTP REST `GET /v1/reportes/liquidacion` en Crow (`main.cpp`).
-  - Suite de pruebas unitarias en `tests/test_reporte_liquidacion.cpp` (`test_reporte_liquidacion`).
-  - Documentación técnica creada y actualizada en `docs/reporte-liquidacion.md`, `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
+  - Módulo `Reportes::obtenerReporteLiquidacion` en `include/reportes.h`.
+  - Endpoint HTTP REST `GET /v1/reportes/liquidacion`.
+  - Suite de pruebas unitarias en `tests/test_reporte_liquidacion.cpp`.
+
+### Fase 7 — Integración y Revisión General de la API
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Revisión exhaustiva de los 42 endpoints REST y controladores HTTP en `main.cpp`.
+  - Verificación del cumplimiento estricto de códigos de respuesta HTTP (`200 OK`, `201 Created`, `400 Bad Request`, `401 Unauthorized`, `404 Not Found`, `409 Conflict`).
+  - Verificación del flujo de integración de extremo a extremo: Autenticación -> Catálogos -> Emisión de Guías -> Cálculos de Peso/Costo -> Despacho y Límites de Capacidad -> Reportes (Rastreo, Manifiesto, Liquidación) -> Persistencia en Disco.
+  - Implementación de la suite de pruebas de integración e-2-e en `tests/test_integracion_api.cpp` (`test_integracion_api`).
+  - Actualización de la documentación viva del proyecto en `docs/rutas-api.md`, `docs/arquitectura.md`, `docs/reglas-negocio.md` y `docs/estado-proyecto.md`.
 - **Pruebas Realizadas**:
-  - Suite unitaria ejecutada mediante `./test_reporte_liquidacion` (0 errores).
-  - Pruebas con múltiples guías e importes, reporte en cero sin guías, tratamiento de guías inactivas, ausencia de duplicados y tolerancia a puntero nulo de archivo.
-  - Pruebas de regresión completas ejecutadas con `./test_calculos && ./test_despacho && ./test_reporte_rastreo && ./test_reporte_manifiesto` (0 errores).
-  - Recompilación limpia verificada con `./build.sh`.
+  - Ejecución limpia de todas las suites unitarias e integración en el sistema mediante `./build.sh && ./test_calculos && ./test_despacho && ./test_reporte_rastreo && ./test_reporte_manifiesto && ./test_reporte_liquidacion && ./test_integracion_api` (0 errores).
+  - Verificación de persistencia de datos tras simulaciones de reinicio del servidor.
 - **Decisiones Importantes**:
-  - No se recalculan tarifas al liquidar para respetar la cobranza histórica registrada en la emisión de cada guía.
+  - La API mantiene un contrato JSON unificado (`{ "success": bool, ... }`) en todos sus endpoints.
+### Fase 8 — Pruebas Finales y Estabilización
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Limpieza de includes duplicados y estandarización del header `include/reportes.h`.
+  - Corrección de invocaciones erróneas a persistencia en `test_reporte_manifiesto.cpp`.
+  - Corrección de aserciones de tipos y cadenas de validación en `test_integracion_api.cpp`.
+  - Validación exhaustiva de las 6 suites de pruebas unitarias e integración en disco `.dat`.
+  - Creación de la documentación técnica de pruebas en `docs/pruebas.md`.
+- **Pruebas Realizadas**:
+  - Compilación limpia del servidor y de todas las suites (`test_calculos`, `test_despacho`, `test_reporte_rastreo`, `test_reporte_manifiesto`, `test_reporte_liquidacion`, `test_integracion_api`).
+  - Tasa de éxito del 100% en pruebas automatizadas sin modificación de datos reales de producción.
+- **Decisiones Importantes**:
+  - Mantenimiento estricto del estándar C++17, Crow y persistencia binaria C stdio.
 - **Problemas Pendientes**:
-  - Ninguno. El reporte de liquidación financiera está 100% verificado y funcional.
+  - Ninguno. El proyecto se encuentra totalmente estabilizado y verificado.
+
+### Fase 9 — Documentación Final y Preparación de Entrega
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Creación del `README.md` principal en la raíz con guía de instalación, compilación, ejecución del servidor, suite de pruebas y defensa académica.
+  - Creación de `docs/api.md` con la especificación completa de contratos JSON y códigos HTTP de todos los endpoints.
+  - Actualización y auditoría de la documentación viva (`docs/arquitectura.md`, `docs/rutas-api.md`, `docs/estructura-dat.md`, `docs/reglas-negocio.md`, `docs/pruebas.md`).
+  - Verificación final de compilación limpia y ejecución del 100% de la suite de pruebas automatizadas.
+- **Pruebas Realizadas**:
+  - Ejecución integral de `./build.sh` y las 6 suites de pruebas sin errores.
+- **Decisiones Importantes**:
+  - Finalización completa de la arquitectura backend de UMG Express. El sistema queda totalmente preparado para integración con frontend React o presentación académica.
+- **Problemas Pendientes**:
+  - Ninguno. El backend está 100% documentado, verificado y listo para entrega.
 
 ---
 
@@ -137,9 +167,10 @@
 | **Fase 6A** | Reporte de Rastreo de Guías (`GET /v1/reportes/rastreo/{numeroGuia}`) | **Completada** |
 | **Fase 6B** | Reporte de Manifiesto por Vehículo (`GET /v1/reportes/manifiesto/{idVehiculo}`) | **Completada** |
 | **Fase 6C** | Reporte de Liquidación (`GET /v1/reportes/liquidacion`) | **Completada** |
-| **Fase 7** | API completa e integración con React | Pendiente |
-| **Fase 8** | Pruebas y estabilización | Pendiente |
-| **Fase 9** | Documentación y revisión final | Pendiente |
+| **Fase 7** | Integración y revisión general de la API | **Completada** |
+| **Fase 8** | Pruebas y estabilización | **Completada** |
+| **Fase 9** | Documentación y revisión final | **Completada** |
+
 
 
 

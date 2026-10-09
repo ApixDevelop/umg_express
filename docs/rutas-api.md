@@ -1,5 +1,7 @@
 # API REST - UMG Express
 
+> **Nota:** Para la especificación técnica completa con ejemplos JSON y contratos de respuesta, consulte [api.md](api.md).
+
 ## 1. Información General
 
 La API utiliza Crow como framework HTTP en C++17.

@@ -4,6 +4,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
+#include <set>
+#include <algorithm>
 #include <cstring>
 
 #include "structs.h"
@@ -14,9 +17,6 @@
 #include "vehiculos.h"
 #include "pilotos.h"
 #include "transacciones.h"
-
-#include <set>
-#include <algorithm>
 
 namespace Reportes {
 
@@ -215,8 +215,6 @@ inline bool obtenerManifiestoVehiculo(const char* vehiculosFilepath,
 
     return true;
 }
-
-#include <map>
 
 struct ResumenEstadoLiquidacion {
     std::string estado;
