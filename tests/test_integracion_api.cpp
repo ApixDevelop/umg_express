@@ -139,7 +139,7 @@ void probarFlujoCompletoIntegracion() {
     assert(okDespacho);
     assert(resDesp.totalGuias == 2);
     assert(resDesp.pesoTotalKg == (12.0 + 30.0)); // 42.0 kg
-    assert(std::strcmp(resDesp.estadoVehiculo, "En ruta") == 0);
+    assert(resDesp.estadoVehiculo == "En ruta");
 
     // Intentar re-despachar guía ya despachada (Rechazo 400)
     Despachos::ResultadoDespacho resDup;
