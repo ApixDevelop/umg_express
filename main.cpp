@@ -1257,6 +1257,90 @@ int main() {
         return crow::response(200, res);
     });
 
+    // -------------------------------------------------------------------------
+    // MÓDULO: REPORTES - LIQUIDACIÓN (Fase 6C)
+    // -------------------------------------------------------------------------
+    CROW_ROUTE(app, "/v1/reportes/liquidacion").methods(crow::HTTPMethod::GET)([]() {
+        crow::json::wvalue res;
+        Reportes::DatosLiquidacion datos;
+        std::string errorMsg;
+
+        if (!Reportes::obtenerReporteLiquidacion(Guias::DEFAULT_FILE_GUIAS,
+                                                 Rutas::DEFAULT_FILE_RUTAS,
+                                                 Sucursales::DEFAULT_FILE_SUCURSALES,
+                                                 datos, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            return crow::response(500, res);
+        }
+
+        crow::json::wvalue lJson;
+
+        // Métricas Financieras y Operativas
+        crow::json::wvalue resFin;
+        resFin["totalGuiasConsideradas"] = datos.totalGuiasConsideradas;
+        resFin["totalGuiasInactivas"] = datos.totalGuiasInactivas;
+        resFin["importeTotalFacturado"] = datos.importeTotalFacturado;
+        resFin["cobradoConfirmado"] = datos.cobradoConfirmado;
+        lJson["resumenFinanciero"] = std::move(resFin);
+
+        // Agrupación por Estado
+        std::vector<crow::json::wvalue> listEstados;
+        for (const auto& re : datos.resumenPorEstado) {
+            crow::json::wvalue eJson;
+            eJson["estado"] = re.estado;
+            eJson["cantidadGuias"] = re.cantidadGuias;
+            eJson["importeTotal"] = re.importeTotal;
+            listEstados.push_back(std::move(eJson));
+        }
+        lJson["guiasPorEstado"] = std::move(listEstados);
+
+        // Agrupación por Ruta
+        std::vector<crow::json::wvalue> listRutas;
+        for (const auto& rr : datos.resumenPorRuta) {
+            crow::json::wvalue rJson;
+            rJson["idRuta"] = rr.idRuta;
+            rJson["cantidadGuias"] = rr.cantidadGuias;
+            rJson["importeTotal"] = rr.importeTotal;
+            listRutas.push_back(std::move(rJson));
+        }
+        lJson["resumenPorRuta"] = std::move(listRutas);
+
+        // Agrupación por Sucursal de Origen
+        std::vector<crow::json::wvalue> listSuc;
+        for (const auto& rs : datos.resumenPorSucursalOrigen) {
+            crow::json::wvalue sJson;
+            sJson["idSucursal"] = rs.idSucursal;
+            sJson["nombre"] = rs.nombre;
+            sJson["cantidadGuias"] = rs.cantidadGuias;
+            sJson["importeTotal"] = rs.importeTotal;
+            listSuc.push_back(std::move(sJson));
+        }
+        lJson["resumenPorSucursalOrigen"] = std::move(listSuc);
+
+        // Desglose Individual de Guías
+        std::vector<crow::json::wvalue> listGuias;
+        for (const auto& gl : datos.guias) {
+            crow::json::wvalue gJson;
+            gJson["numeroGuia"] = gl.guia.numeroGuia;
+            gJson["estado"] = std::string(gl.guia.estado);
+            gJson["pesoFacturableKg"] = gl.guia.pesoFacturableKg;
+            gJson["costoTotal"] = gl.guia.costoTotal;
+            gJson["idClienteRemitente"] = gl.guia.idClienteRemitente;
+            gJson["idClienteDestinatario"] = gl.guia.idClienteDestinatario;
+            gJson["idRuta"] = gl.guia.idRuta;
+            if (gl.tieneSucursalOrigen) {
+                gJson["sucursalOrigen"] = std::string(gl.sucursalOrigen.nombre);
+            }
+            listGuias.push_back(std::move(gJson));
+        }
+        lJson["desgloseGuias"] = std::move(listGuias);
+
+        res["success"] = true;
+        res["liquidacion"] = std::move(lJson);
+        return crow::response(200, res);
+    });
+
     std::cout << "Servidor UMG Express escuchando en puerto 18080..." << std::endl;
     app.bindaddr("127.0.0.1").port(18080).multithreaded().run();
 
