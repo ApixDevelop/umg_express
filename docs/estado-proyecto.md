@@ -2,9 +2,9 @@
 
 ## Información General
 - **Proyecto**: UMG Express (Sistema Logístico y de Paquetería)
-- **Fase Actual**: Fase 6B — Reporte de manifiesto de vehículo
+- **Fase Actual**: Fase 6C — Reporte de liquidación
 - **Estado de la Fase**: Completada
-- **Próxima Fase**: Fase 6C — Reporte de liquidación (Pendiente de autorización)
+- **Próxima Fase**: Fase 7 — API completa e integración con React (Pendiente de autorización)
 
 ---
 
@@ -94,22 +94,29 @@
 ### Fase 6B — Reporte de Manifiesto de Vehículo
 - **Estado**: COMPLETADA
 - **Trabajo Realizado**:
-  - Implementación del módulo `Reportes::obtenerManifiestoVehiculo` en `include/reportes.h`.
-  - Consolidación de datos del vehículo, piloto asignado, ruta principal y lista de guías despachadas con sus pesos y volúmenes acumulados.
-  - Desduplicación de guías en el manifiesto y soporte para vehículos sin cargas asignadas (retornando resumen en cero y arreglo de guías vacío).
-  - Implementación del endpoint HTTP REST `GET /v1/reportes/manifiesto/{idVehiculo}` en Crow (`main.cpp`).
-  - Suite de pruebas unitarias en `tests/test_reporte_manifiesto.cpp` (`test_reporte_manifiesto`).
-  - Documentación técnica creada y actualizada en `docs/reporte-manifiesto.md`, `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
+  - Módulo `Reportes::obtenerManifiestoVehiculo` en `include/reportes.h`.
+  - Endpoint HTTP REST `GET /v1/reportes/manifiesto/{idVehiculo}`.
+  - Suite de pruebas unitarias en `tests/test_reporte_manifiesto.cpp`.
+
+### Fase 6C — Reporte de Liquidación Financiera
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Implementación del módulo `Reportes::obtenerReporteLiquidacion` en `include/reportes.h`.
+  - Consolidación financiera y de volumen de guías, acumulando `costoTotal` pre-registrado y agrupando por estado, ruta y sucursal de origen.
+  - Exclusión adecuada de guías inactivas (`activo == false`) de la sumatoria facturada para no distorsionar ingresos.
+  - Reporte explícito de `cobradoConfirmado: 0.0` con aclaración fundamentada de la ausencia de módulo de caja/pagos post-entrega.
+  - Implementación del endpoint HTTP REST `GET /v1/reportes/liquidacion` en Crow (`main.cpp`).
+  - Suite de pruebas unitarias en `tests/test_reporte_liquidacion.cpp` (`test_reporte_liquidacion`).
+  - Documentación técnica creada y actualizada en `docs/reporte-liquidacion.md`, `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
 - **Pruebas Realizadas**:
-  - Suite unitaria ejecutada mediante `./test_reporte_manifiesto` (0 errores).
-  - Pruebas de vehículo con múltiples guías despachadas, vehículo sin guías asignadas, vehículo inexistente (404), ID de vehículo inválido (-1), prevención de guías duplicadas y exclusión de guías de otros vehículos.
-  - Pruebas de regresión ejecutadas con `./test_calculos && ./test_despacho && ./test_reporte_rastreo` (0 errores).
+  - Suite unitaria ejecutada mediante `./test_reporte_liquidacion` (0 errores).
+  - Pruebas con múltiples guías e importes, reporte en cero sin guías, tratamiento de guías inactivas, ausencia de duplicados y tolerancia a puntero nulo de archivo.
+  - Pruebas de regresión completas ejecutadas con `./test_calculos && ./test_despacho && ./test_reporte_rastreo && ./test_reporte_manifiesto` (0 errores).
   - Recompilación limpia verificada con `./build.sh`.
 - **Decisiones Importantes**:
-  - El manifiesto desduplica guías si existieron múltiples registros históricos de despacho para el mismo vehículo.
-  - El volumen se calcula individualmente en $m^3$ mediante `(largoCm * anchoCm * altoCm) / 1000000.0`.
+  - No se recalculan tarifas al liquidar para respetar la cobranza histórica registrada en la emisión de cada guía.
 - **Problemas Pendientes**:
-  - Ninguno. El reporte de manifiesto de vehículo está 100% verificado y funcional.
+  - Ninguno. El reporte de liquidación financiera está 100% verificado y funcional.
 
 ---
 
@@ -129,10 +136,11 @@
 | **Fase 5C** | Despacho y Operaciones (Asignación de vehículos, capacidad, estado) | **Completada** |
 | **Fase 6A** | Reporte de Rastreo de Guías (`GET /v1/reportes/rastreo/{numeroGuia}`) | **Completada** |
 | **Fase 6B** | Reporte de Manifiesto por Vehículo (`GET /v1/reportes/manifiesto/{idVehiculo}`) | **Completada** |
-| **Fase 6C** | Reporte de Liquidación | Pendiente |
+| **Fase 6C** | Reporte de Liquidación (`GET /v1/reportes/liquidacion`) | **Completada** |
 | **Fase 7** | API completa e integración con React | Pendiente |
 | **Fase 8** | Pruebas y estabilización | Pendiente |
 | **Fase 9** | Documentación y revisión final | Pendiente |
+
 
 
 
