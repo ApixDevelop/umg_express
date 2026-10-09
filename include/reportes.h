@@ -15,6 +15,9 @@
 #include "pilotos.h"
 #include "transacciones.h"
 
+#include <set>
+#include <algorithm>
+
 namespace Reportes {
 
 struct DatosRastreoGuia {
@@ -35,6 +38,38 @@ struct DatosRastreoGuia {
     Vehiculo vehiculo;
     bool tienePiloto;
     Piloto piloto;
+};
+
+struct GuiaManifiesto {
+    Guia guia;
+    double volumenM3;
+    bool tieneRemitente;
+    Cliente clienteRemitente;
+    bool tieneDestinatario;
+    Cliente clienteDestinatario;
+    bool tieneRuta;
+    Ruta ruta;
+    bool tieneSucursalOrigen;
+    Sucursal sucursalOrigen;
+    bool tieneSucursalDestino;
+    Sucursal sucursalDestino;
+};
+
+struct DatosManifiestoVehiculo {
+    Vehiculo vehiculo;
+    bool tienePiloto;
+    Piloto piloto;
+    bool tieneRutaPrincipal;
+    Ruta rutaPrincipal;
+    bool tieneSucursalOrigen;
+    Sucursal sucursalOrigen;
+    bool tieneSucursalDestino;
+    Sucursal sucursalDestino;
+    std::vector<GuiaManifiesto> guias;
+    int totalGuias;
+    double pesoTotalKg;
+    double volumenTotalM3;
+    char fechaDespacho[30];
 };
 
 // Obtiene todos los datos asociados a una guía para el reporte de rastreo (Fase 6A)
@@ -90,6 +125,98 @@ inline bool obtenerRastreoGuia(const char* guiasFilepath,
     return true;
 }
 
+// Obtiene el manifiesto de carga y guías para un vehículo específico (Fase 6B)
+inline bool obtenerManifiestoVehiculo(const char* vehiculosFilepath,
+                                     const char* despachosFilepath,
+                                     const char* guiasFilepath,
+                                     const char* pilotosFilepath,
+                                     const char* rutasFilepath,
+                                     const char* sucursalesFilepath,
+                                     const char* clientesFilepath,
+                                     int idVehiculo,
+                                     DatosManifiestoVehiculo& outDatos,
+                                     std::string& errorMsg) {
+    outDatos.tienePiloto = false;
+    outDatos.tieneRutaPrincipal = false;
+    outDatos.tieneSucursalOrigen = false;
+    outDatos.tieneSucursalDestino = false;
+    outDatos.guias.clear();
+    outDatos.totalGuias = 0;
+    outDatos.pesoTotalKg = 0.0;
+    outDatos.volumenTotalM3 = 0.0;
+    std::memset(outDatos.fechaDespacho, 0, sizeof(outDatos.fechaDespacho));
+
+    // 1. Obtener vehículo
+    if (!Vehiculos::obtenerVehiculoPorId(vehiculosFilepath, idVehiculo, outDatos.vehiculo)) {
+        errorMsg = "Vehículo ID " + std::to_string(idVehiculo) + " no encontrado o inactivo";
+        return false;
+    }
+
+    // 2. Obtener despachos asociados a este vehículo
+    if (despachosFilepath == nullptr) {
+        return true; // Vehículo existe pero sin despachos
+    }
+
+    std::vector<Despacho> despachos = Despachos::listarDespachos(despachosFilepath);
+    std::set<int> guiasProcesadas;
+
+    for (const auto& d : despachos) {
+        if (d.idVehiculo == idVehiculo && d.activo) {
+            // Guardar fecha de despacho si está disponible
+            if (outDatos.fechaDespacho[0] == '\0' && d.fechaDespacho[0] != '\0') {
+                std::strncpy(outDatos.fechaDespacho, d.fechaDespacho, sizeof(outDatos.fechaDespacho) - 1);
+            }
+
+            // Obtener piloto si aún no se tiene uno
+            if (!outDatos.tienePiloto && d.idPiloto > 0) {
+                outDatos.tienePiloto = Pilotos::obtenerPilotoPorId(pilotosFilepath, d.idPiloto, outDatos.piloto);
+            }
+
+            // Evitar duplicados de guía en el manifiesto
+            if (guiasProcesadas.find(d.numeroGuia) != guiasProcesadas.end()) {
+                continue;
+            }
+            guiasProcesadas.insert(d.numeroGuia);
+
+            // Obtener guía de la persistencia
+            Guia g;
+            long index = -1;
+            if (Persistence::buscarGuiaPorNumero(guiasFilepath, d.numeroGuia, g, index)) {
+                GuiaManifiesto gm;
+                std::memset(&gm, 0, sizeof(GuiaManifiesto));
+                gm.guia = g;
+                gm.volumenM3 = (g.largoCm * g.anchoCm * g.altoCm) / 1000000.0;
+
+                gm.tieneRemitente = Clientes::obtenerClientePorId(clientesFilepath, g.idClienteRemitente, gm.clienteRemitente);
+                gm.tieneDestinatario = Clientes::obtenerClientePorId(clientesFilepath, g.idClienteDestinatario, gm.clienteDestinatario);
+
+                gm.tieneRuta = Rutas::obtenerRutaPorId(rutasFilepath, g.idRuta, gm.ruta);
+                if (gm.tieneRuta) {
+                    gm.tieneSucursalOrigen = Sucursales::obtenerSucursalPorId(sucursalesFilepath, gm.ruta.idSucursalOrigen, gm.sucursalOrigen);
+                    gm.tieneSucursalDestino = Sucursales::obtenerSucursalPorId(sucursalesFilepath, gm.ruta.idSucursalDestino, gm.sucursalDestino);
+
+                    if (!outDatos.tieneRutaPrincipal) {
+                        outDatos.tieneRutaPrincipal = true;
+                        outDatos.rutaPrincipal = gm.ruta;
+                        outDatos.tieneSucursalOrigen = gm.tieneSucursalOrigen;
+                        outDatos.sucursalOrigen = gm.sucursalOrigen;
+                        outDatos.tieneSucursalDestino = gm.tieneSucursalDestino;
+                        outDatos.sucursalDestino = gm.sucursalDestino;
+                    }
+                }
+
+                outDatos.guias.push_back(gm);
+                outDatos.totalGuias++;
+                outDatos.pesoTotalKg += g.pesoFacturableKg;
+                outDatos.volumenTotalM3 += gm.volumenM3;
+            }
+        }
+    }
+
+    return true;
+}
+
 } // namespace Reportes
+
 
 #endif // REPORTES_H
