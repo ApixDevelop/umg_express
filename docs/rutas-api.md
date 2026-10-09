@@ -317,11 +317,62 @@ Obtiene el historial completo de registros de despacho almacenados en `data/desp
 
 ---
 
-## 11. Endpoints Pendientes (Próximas Fases)
+## 11. Reportes - Rastreo de Guías (`/v1/reportes/rastreo`) - Implementado en Fase 6A
 
-- `/v1/reportes/rastreo/{numeroGuia}` (Fase 6)
-- `/v1/reportes/manifiesto/{idVehiculo}` (Fase 6)
-- `/v1/reportes/liquidacion` (Fase 6)
+### GET `/v1/reportes/rastreo/{numeroGuia}`
+Obtiene la información detallada de rastreo de una guía por su número correlativo (`numeroGuia`). Reutiliza la persistencia binaria de guías, clientes, rutas, sucursales, despachos, vehículos y pilotos.
+
+- **Request Parameter**: `numeroGuia` (entero).
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "rastreo": {
+      "numeroGuia": 1001,
+      "estado": "Despachada",
+      "fechaEmision": "2026-10-09 09:30:00",
+      "paquete": {
+        "pesoRealKg": 5.0,
+        "largoCm": 60.0,
+        "anchoCm": 50.0,
+        "altoCm": 40.0,
+        "pesoVolumetricoKg": 24.0,
+        "pesoFacturableKg": 24.0,
+        "costoTotal": 285.6
+      },
+      "remitente": { "id": 1, "nombre": "Juan Pérez", "nit": "1234567-8", "telefono": "5555-1234" },
+      "destinatario": { "id": 2, "nombre": "Maria Lopez", "nit": "8765432-1", "telefono": "5555-4321" },
+      "ruta": {
+        "id": 1,
+        "nombre": "Ruta Central",
+        "sucursalOrigen": { "id": 1, "nombre": "Central Guatemala", "direccion": "Zona 1" },
+        "sucursalDestino": { "id": 2, "nombre": "Sucursal Xela", "direccion": "Zona 3" }
+      },
+      "despachada": true,
+      "despacho": {
+        "idDespacho": 1,
+        "fechaDespacho": "2026-10-09 10:15:00",
+        "vehiculo": { "id": 1, "placa": "P-123ABC", "modelo": "Isuzu NPR 2022", "estado": "En ruta" },
+        "piloto": { "id": 1, "nombre": "Mario Estrada", "licencia": "LIC-12345", "telefono": "5555-1111" }
+      }
+    }
+  }
+  ```
+- **Response `404 Not Found`**: Si la guía no existe o está inactiva:
+  ```json
+  {
+    "success": false,
+    "mensaje": "Guía número 9999 no encontrada o inactiva"
+  }
+  ```
+
+---
+
+## 12. Endpoints Pendientes (Próximas Fases)
+
+- `/v1/reportes/manifiesto/{idVehiculo}` (Fase 6B)
+- `/v1/reportes/liquidacion` (Fase 6C)
+
 
 
 
