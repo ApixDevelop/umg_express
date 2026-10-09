@@ -255,11 +255,73 @@ Busca una guía específica por su número correlativo de guía (`numeroGuia`).
 
 ---
 
-## 10. Endpoints Pendientes (Próximas Fases)
+## 10. Transacciones - Despacho (`/v1/transacciones/despacho`) - Implementado en Fase 5C
 
-- `/v1/transacciones/despacho` (Fase 5C)
+### POST `/v1/transacciones/despacho`
+Asigna y despacha un conjunto de guías en un vehículo, validando que el peso y volumen acumulados no excedan la capacidad física del vehículo.
+
+- **Validaciones**:
+  - `idVehiculo` debe existir y no estar en estado `"En taller"`.
+  - `idPiloto` (opcional) debe ser un piloto activo.
+  - `guias` debe ser una lista de números de guía existentes en estado `"Creada"`.
+  - La suma de `pesoFacturableKg` de las guías no debe exceder `capacidadPesoKg` del vehículo.
+  - La suma de volumen en $m^3$ de las guías no debe exceder `capacidadVolumenM3` del vehículo.
+
+- **Request Body**:
+  ```json
+  {
+    "idVehiculo": 1,
+    "idPiloto": 1,
+    "guias": [1001, 1002]
+  }
+  ```
+- **Response `201 Created`**:
+  ```json
+  {
+    "success": true,
+    "mensaje": "Despacho realizado exitosamente y vehículo actualizado a 'En ruta'",
+    "despacho": {
+      "idVehiculo": 1,
+      "idPiloto": 1,
+      "totalGuias": 2,
+      "pesoTotalKg": 70.0,
+      "volumenTotalM3": 0.18,
+      "estadoVehiculo": "En ruta",
+      "guiasDespachadas": [1001, 1002]
+    }
+  }
+  ```
+- **Response `400 Bad Request`**: Si se excede la capacidad del vehículo, si el vehículo está en taller, si una guía ya fue despachada o si faltan datos obligatorios.
+- **Response `404 Not Found`**: Si el vehículo, piloto o guía no existen o están inactivos.
+
+### GET `/v1/transacciones/despacho`
+Obtiene el historial completo de registros de despacho almacenados en `data/despachos.dat`.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "despachos": [
+      {
+        "id": 1,
+        "idVehiculo": 1,
+        "idPiloto": 1,
+        "numeroGuia": 1001,
+        "pesoKg": 30.0,
+        "volumenM3": 0.06,
+        "fechaDespacho": "2026-10-08 21:00:00"
+      }
+    ]
+  }
+  ```
+
+---
+
+## 11. Endpoints Pendientes (Próximas Fases)
+
 - `/v1/reportes/rastreo/{numeroGuia}` (Fase 6)
 - `/v1/reportes/manifiesto/{idVehiculo}` (Fase 6)
 - `/v1/reportes/liquidacion` (Fase 6)
+
 
 
