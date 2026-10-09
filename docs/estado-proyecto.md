@@ -2,9 +2,9 @@
 
 ## Información General
 - **Proyecto**: UMG Express (Sistema Logístico y de Paquetería)
-- **Fase Actual**: Fase 7 — Integración y revisión general de la API
+- **Fase Actual**: Fase 8 — Pruebas finales y estabilización
 - **Estado de la Fase**: Completada
-- **Próxima Fase**: Fase 8 — Pruebas y estabilización (Pendiente de autorización)
+- **Próxima Fase**: Fase 9 — Documentación y revisión final (Pendiente de autorización)
 
 ---
 
@@ -118,8 +118,21 @@
   - Verificación de persistencia de datos tras simulaciones de reinicio del servidor.
 - **Decisiones Importantes**:
   - La API mantiene un contrato JSON unificado (`{ "success": bool, ... }`) en todos sus endpoints.
+### Fase 8 — Pruebas Finales y Estabilización
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Limpieza de includes duplicados y estandarización del header `include/reportes.h`.
+  - Corrección de invocaciones erróneas a persistencia en `test_reporte_manifiesto.cpp`.
+  - Corrección de aserciones de tipos y cadenas de validación en `test_integracion_api.cpp`.
+  - Validación exhaustiva de las 6 suites de pruebas unitarias e integración en disco `.dat`.
+  - Creación de la documentación técnica de pruebas en `docs/pruebas.md`.
+- **Pruebas Realizadas**:
+  - Compilación limpia del servidor y de todas las suites (`test_calculos`, `test_despacho`, `test_reporte_rastreo`, `test_reporte_manifiesto`, `test_reporte_liquidacion`, `test_integracion_api`).
+  - Tasa de éxito del 100% en pruebas automatizadas sin modificación de datos reales de producción.
+- **Decisiones Importantes**:
+  - Mantenimiento estricto del estándar C++17, Crow y persistencia binaria C stdio.
 - **Problemas Pendientes**:
-  - Ninguno. El backend está totalmente integrado y probado.
+  - Ninguno. El proyecto se encuentra totalmente estabilizado y verificado.
 
 ---
 
@@ -141,7 +154,7 @@
 | **Fase 6B** | Reporte de Manifiesto por Vehículo (`GET /v1/reportes/manifiesto/{idVehiculo}`) | **Completada** |
 | **Fase 6C** | Reporte de Liquidación (`GET /v1/reportes/liquidacion`) | **Completada** |
 | **Fase 7** | Integración y revisión general de la API | **Completada** |
-| **Fase 8** | Pruebas y estabilización | Pendiente |
+| **Fase 8** | Pruebas y estabilización | **Completada** |
 | **Fase 9** | Documentación y revisión final | Pendiente |
 
 

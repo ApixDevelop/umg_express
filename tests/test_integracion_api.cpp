@@ -125,7 +125,7 @@ void probarFlujoCompletoIntegracion() {
     Guia gError;
     bool okSameClient = Guias::crearGuia(FILE_GUIAS_INT, FILE_CLIENTES_INT, FILE_RUTAS_INT, FILE_TARIFAS_INT, cRem.id, cRem.id, r1.id, 10.0, 10.0, 10.0, 10.0, 0, "", gError, err);
     assert(!okSameClient);
-    assert(err.find("diferentes") != std::string::npos);
+    assert(err.find("mismo") != std::string::npos);
 
     std::cout << "  -> OK: Guías emitidas con numeración correlativa y fórmulas validadas." << std::endl;
 
@@ -139,7 +139,7 @@ void probarFlujoCompletoIntegracion() {
     assert(okDespacho);
     assert(resDesp.totalGuias == 2);
     assert(resDesp.pesoTotalKg == (12.0 + 30.0)); // 42.0 kg
-    assert(std::strcmp(resDesp.estadoVehiculo, "En ruta") == 0);
+    assert(resDesp.estadoVehiculo == "En ruta");
 
     // Intentar re-despachar guía ya despachada (Rechazo 400)
     Despachos::ResultadoDespacho resDup;

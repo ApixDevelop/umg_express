@@ -18,9 +18,6 @@
 #include "pilotos.h"
 #include "transacciones.h"
 
-#include <set>
-#include <algorithm>
-
 namespace Reportes {
 
 struct DatosRastreoGuia {
