@@ -13,6 +13,7 @@
 #include "pilotos.h"
 #include "tarifas.h"
 #include "transacciones.h"
+#include "reportes.h"
 
 void inicializarPersistencia() {
     Persistence::asegurarArchivo("data/usuarios.dat");
