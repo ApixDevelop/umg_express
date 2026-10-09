@@ -247,4 +247,175 @@ inline bool eliminarGuia(const char* filepath, int numeroGuia, std::string& erro
 
 } // namespace Guias
 
+#include "vehiculos.h"
+#include "pilotos.h"
+
+namespace Despachos {
+
+const char* const DEFAULT_FILE_DESPACHOS = "data/despachos.dat";
+
+struct ResultadoDespacho {
+    int idVehiculo;
+    int idPiloto;
+    int totalGuias;
+    double pesoTotalKg;
+    double volumenTotalM3;
+    std::string estadoVehiculo;
+    std::vector<int> guiasDespachadas;
+};
+
+// Obtiene la lista de todos los despachos activos
+inline std::vector<Despacho> listarDespachos(const char* filepath = DEFAULT_FILE_DESPACHOS) {
+    return Persistence::leerTodos<Despacho>(filepath, true);
+}
+
+// Procesa el despacho de una lista de guías asignándolas a un vehículo y verificando límites de peso y volumen
+inline bool procesarDespacho(const char* despachosFilepath,
+                             const char* guiasFilepath,
+                             const char* vehiculosFilepath,
+                             const char* pilotosFilepath,
+                             int idVehiculo,
+                             int idPiloto,
+                             const std::vector<int>& numerosGuias,
+                             ResultadoDespacho& outResultado,
+                             std::string& errorMsg) {
+    if (idVehiculo <= 0) {
+        errorMsg = "ID de vehículo inválido";
+        return false;
+    }
+
+    if (numerosGuias.empty()) {
+        errorMsg = "Debe especificar al menos una guía para despachar";
+        return false;
+    }
+
+    // 1. Validar vehículo
+    Vehiculo v;
+    if (!Vehiculos::obtenerVehiculoPorId(vehiculosFilepath, idVehiculo, v)) {
+        errorMsg = "El vehículo con ID " + std::to_string(idVehiculo) + " no existe o está inactivo";
+        return false;
+    }
+
+    if (std::string(v.estado) == "En taller") {
+        errorMsg = "El vehículo con ID " + std::to_string(idVehiculo) + " está en taller y no puede despacharse";
+        return false;
+    }
+
+    // 2. Validar piloto (si se proporciona idPiloto > 0)
+    if (idPiloto > 0) {
+        Piloto p;
+        if (!Pilotos::obtenerPilotoPorId(pilotosFilepath, idPiloto, p)) {
+            errorMsg = "El piloto con ID " + std::to_string(idPiloto) + " no existe o está inactivo";
+            return false;
+        }
+    }
+
+    // 3. Validar guías y comprobar duplicados en la lista enviada
+    std::vector<Guia> guiasAProcesar;
+    std::vector<long> indicesGuias;
+    double pesoAcumuladoBatch = 0.0;
+    double volumenAcumuladoBatch = 0.0;
+
+    for (size_t i = 0; i < numerosGuias.size(); ++i) {
+        int numGuia = numerosGuias[i];
+
+        // Verificar duplicados dentro de la misma solicitud
+        for (size_t j = 0; j < i; ++j) {
+            if (numerosGuias[j] == numGuia) {
+                errorMsg = "La guía número " + std::to_string(numGuia) + " está duplicada en la solicitud de despacho";
+                return false;
+            }
+        }
+
+        Guia g;
+        long index = -1;
+        if (!Persistence::buscarGuiaPorNumero(guiasFilepath, numGuia, g, index)) {
+            errorMsg = "La guía número " + std::to_string(numGuia) + " no existe o está inactiva";
+            return false;
+        }
+
+        std::string estGuia(g.estado);
+        if (estGuia == "Despachada") {
+            errorMsg = "La guía número " + std::to_string(numGuia) + " ya se encuentra despachada";
+            return false;
+        }
+        if (estGuia == "Entregada") {
+            errorMsg = "La guía número " + std::to_string(numGuia) + " ya se encuentra entregada";
+            return false;
+        }
+
+        double volM3 = (g.largoCm * g.anchoCm * g.altoCm) / 1000000.0;
+        double pesoFact = g.pesoFacturableKg;
+
+        pesoAcumuladoBatch += pesoFact;
+        volumenAcumuladoBatch += volM3;
+
+        guiasAProcesar.push_back(g);
+        indicesGuias.push_back(index);
+    }
+
+    // 4. Validar capacidad del vehículo contra el peso y volumen acumulados
+    if (pesoAcumuladoBatch > v.capacidadPesoKg) {
+        errorMsg = "Despacho rechazado: El peso acumulado (" + std::to_string(pesoAcumuladoBatch) +
+                   " kg) excede la capacidad máxima del vehículo (" + std::to_string(v.capacidadPesoKg) + " kg)";
+        return false;
+    }
+
+    if (volumenAcumuladoBatch > v.capacidadVolumenM3) {
+        errorMsg = "Despacho rechazado: El volumen acumulado (" + std::to_string(volumenAcumuladoBatch) +
+                   " m3) excede la capacidad máxima del vehículo (" + std::to_string(v.capacidadVolumenM3) + " m3)";
+        return false;
+    }
+
+    // 5. Aplicar cambios
+    // 5a. Actualizar estado de las guías a "Despachada"
+    for (size_t i = 0; i < guiasAProcesar.size(); ++i) {
+        Guia g = guiasAProcesar[i];
+        std::memset(g.estado, 0, sizeof(g.estado));
+        std::strncpy(g.estado, "Despachada", sizeof(g.estado) - 1);
+        if (!Persistence::actualizarEnIndice<Guia>(guiasFilepath, indicesGuias[i], g)) {
+            errorMsg = "Error al actualizar estado de la guía número " + std::to_string(g.numeroGuia);
+            return false;
+        }
+    }
+
+    // 5b. Actualizar estado del vehículo a "En ruta"
+    std::memset(v.estado, 0, sizeof(v.estado));
+    std::strncpy(v.estado, "En ruta", sizeof(v.estado) - 1);
+    if (!Persistence::actualizarPorId<Vehiculo>(vehiculosFilepath, idVehiculo, v)) {
+        errorMsg = "Error al actualizar el estado del vehículo en disco";
+        return false;
+    }
+
+    // 5c. Registrar despachos en data/despachos.dat
+    for (size_t i = 0; i < guiasAProcesar.size(); ++i) {
+        const auto& g = guiasAProcesar[i];
+        Despacho d;
+        std::memset(&d, 0, sizeof(Despacho));
+        d.id = Persistence::obtenerSiguienteId<Despacho>(despachosFilepath);
+        d.idVehiculo = idVehiculo;
+        d.idPiloto = idPiloto;
+        d.numeroGuia = g.numeroGuia;
+        d.pesoKg = g.pesoFacturableKg;
+        d.volumenM3 = (g.largoCm * g.anchoCm * g.altoCm) / 1000000.0;
+        std::strncpy(d.fechaDespacho, "2026-10-08 21:00:00", sizeof(d.fechaDespacho) - 1);
+        d.activo = true;
+
+        Persistence::insertar<Despacho>(despachosFilepath, d);
+    }
+
+    // 6. Armar respuesta
+    outResultado.idVehiculo = idVehiculo;
+    outResultado.idPiloto = idPiloto;
+    outResultado.totalGuias = static_cast<int>(guiasAProcesar.size());
+    outResultado.pesoTotalKg = pesoAcumuladoBatch;
+    outResultado.volumenTotalM3 = volumenAcumuladoBatch;
+    outResultado.estadoVehiculo = "En ruta";
+    outResultado.guiasDespachadas = numerosGuias;
+
+    return true;
+}
+
+} // namespace Despachos
+
 #endif // TRANSACCIONES_H
