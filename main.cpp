@@ -23,6 +23,7 @@ void inicializarPersistencia() {
     Persistence::asegurarArchivo("data/pilotos.dat");
     Persistence::asegurarArchivo("data/tarifas.dat");
     Persistence::asegurarArchivo("data/guias.dat");
+    Persistence::asegurarArchivo("data/despachos.dat");
     
     // Crear usuario admin por defecto si el archivo está vacío
     Auth::inicializarUsuarioAdminPorDefecto(Auth::DEFAULT_FILE_USUARIOS);
