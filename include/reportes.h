@@ -4,6 +4,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
+#include <set>
+#include <algorithm>
 #include <cstring>
 
 #include "structs.h"
