@@ -1,6 +1,6 @@
 # Arquitectura - UMG Express
 
-## 1. Estructura del Proyecto (Fase 6A)
+## 1. Estructura del Proyecto (Fase 6B)
 
 ```text
 umgExpress/
@@ -16,6 +16,7 @@ umgExpress/
 ├── test_calculos            # Pruebas unitarias de peso volumétrico y costos (Fase 5B)
 ├── test_despacho            # Pruebas unitarias de despacho y control de capacidad (Fase 5C)
 ├── test_reporte_rastreo    # Pruebas unitarias de reporte de rastreo de guías (Fase 6A)
+├── test_reporte_manifiesto # Pruebas unitarias de reporte de manifiesto de vehículo (Fase 6B)
 ├── include/                 # Encabezados modulares
 │   ├── structs.h            # Estructuras de tamaño fijo para archivos binarios .dat
 │   ├── persistence.h        # Motor genérico de persistencia binaria (stdio)
@@ -27,7 +28,7 @@ umgExpress/
 │   ├── pilotos.h            # Módulo CRUD de Pilotos (Fase 4C)
 │   ├── tarifas.h            # Módulo CRUD de Tarifas (Fase 4C)
 │   ├── transacciones.h      # Módulo de Transacciones - Guías, Cálculos y Despacho (Fases 5A/5B/5C)
-│   └── reportes.h           # Módulo de Reportes - Rastreo de Guías (Fase 6A)
+│   └── reportes.h           # Módulo de Reportes - Rastreo (6A) y Manifiesto de Vehículo (6B)
 ├── tests/                   # Pruebas unitarias e integración
 │   ├── test_persistence.cpp  # Pruebas de almacenamiento .dat
 │   ├── test_auth.cpp        # Pruebas de autenticación
@@ -37,7 +38,8 @@ umgExpress/
 │   ├── test_guias.cpp               # Pruebas de emisión y consulta de guías (Fase 5A)
 │   ├── test_calculos.cpp            # Pruebas de peso volumétrico y costo total (Fase 5B)
 │   ├── test_despacho.cpp            # Pruebas de despacho y límites de capacidad (Fase 5C)
-│   └── test_reporte_rastreo.cpp     # Pruebas de reporte de rastreo (Fase 6A)
+│   ├── test_reporte_rastreo.cpp     # Pruebas de reporte de rastreo (Fase 6A)
+│   └── test_reporte_manifiesto.cpp  # Pruebas de reporte de manifiesto (Fase 6B)
 ├── data/                    # Directorio de persistencia binaria .dat
 │   ├── usuarios.dat
 │   ├── sucursales.dat
@@ -56,6 +58,7 @@ umgExpress/
     ├── calculos-guias.md
     ├── despacho.md
     ├── reporte-rastreo.md
+    ├── reporte-manifiesto.md
     ├── rutas-api.md
     ├── reglas-negocio.md
     └── estado-proyecto.md
@@ -75,6 +78,7 @@ umgExpress/
 - **Transacciones - Guías y Cálculos (`include/transacciones.h`)**: Emisión de guías de envío con numeración correlativa automática (1001+), cálculo automático de peso volumétrico: `(largo*ancho*alto)/5000`, peso facturable: `max(pesoReal, pesoVolumetrico)`, y costo total integrado.
 - **Transacciones - Despacho (`include/transacciones.h`)**: Asignación de guías a vehículos de transporte, control de capacidad acumulada de peso y volumen, rechazo automático si se exceden los límites o si el vehículo está en taller, actualización de guía a `"Despachada"` y de vehículo a `"En ruta"`.
 - **Reportes - Rastreo (`include/reportes.h`)**: Consulta integral de rastreo por `numeroGuia` consolidando datos de cliente remitente/destinatario, ruta, sucursales de origen/destino, peso, costos, y datos de despacho (vehículo y piloto) si la guía ha sido despachada.
+- **Reportes - Manifiesto de Vehículo (`include/reportes.h`)**: Generación del manifiesto de despacho por `idVehiculo`, detallando piloto, ruta, lista de guías despachadas y totales de peso y volumen acumulados.
 
 ---
 
@@ -93,6 +97,8 @@ umgExpress/
   - `/v1/transacciones/guias` (`GET`, `POST`) | `/v1/transacciones/guias/<int>` (`GET`)
   - `/v1/transacciones/despacho` (`GET`, `POST`)
   - `/v1/reportes/rastreo/<int>` (`GET`)
+  - `/v1/reportes/manifiesto/<int>` (`GET`)
+
 
 
 

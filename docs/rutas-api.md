@@ -360,18 +360,68 @@ Obtiene la información detallada de rastreo de una guía por su número correla
   ```
 - **Response `404 Not Found`**: Si la guía no existe o está inactiva:
   ```json
+---
+
+## 12. Reportes - Manifiesto de Vehículo (`/v1/reportes/manifiesto`) - Implementado en Fase 6B
+
+### GET `/v1/reportes/manifiesto/{idVehiculo}`
+Genera el manifiesto de carga detallado para un vehículo especificando las guías asignadas, piloto, ruta y resumen de pesos y volúmenes acumulados.
+
+- **Request Parameter**: `idVehiculo` (entero).
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "manifiesto": {
+      "vehiculo": {
+        "id": 1,
+        "placa": "P-100AAA",
+        "marcaModelo": "Isuzu NPR 2022",
+        "capacidadPesoKg": 1000.0,
+        "capacidadVolumenM3": 10.0,
+        "estado": "En ruta"
+      },
+      "piloto": { "id": 1, "nombre": "Mario Estrada", "licencia": "LIC-12345", "telefono": "5555-1111" },
+      "ruta": {
+        "id": 1,
+        "sucursalOrigen": { "id": 1, "nombre": "Sucursal Guatemala Central", "direccion": "Zona 1" },
+        "sucursalDestino": { "id": 2, "nombre": "Sucursal Quetzaltenango", "direccion": "Zona 3 Xela" }
+      },
+      "resumen": {
+        "totalGuias": 2,
+        "pesoTotalKg": 37.0,
+        "volumenTotalM3": 0.18
+      },
+      "guias": [
+        {
+          "numeroGuia": 1001,
+          "estado": "Despachada",
+          "pesoRealKg": 10.0,
+          "pesoVolumetricoKg": 12.0,
+          "pesoFacturableKg": 12.0,
+          "volumenM3": 0.06,
+          "costoTotal": 142.8,
+          "remitente": { "id": 1, "nombre": "Distribuidora Central S.A." },
+          "destinatario": { "id": 2, "nombre": "Comercial Xela Ltda" }
+        }
+      ]
+    }
+  }
+  ```
+- **Response `404 Not Found`**: Si el vehículo no existe o se encuentra inactivo:
+  ```json
   {
     "success": false,
-    "mensaje": "Guía número 9999 no encontrada o inactiva"
+    "mensaje": "Vehículo ID 9999 no encontrado o inactivo"
   }
   ```
 
 ---
 
-## 12. Endpoints Pendientes (Próximas Fases)
+## 13. Endpoints Pendientes (Próximas Fases)
 
-- `/v1/reportes/manifiesto/{idVehiculo}` (Fase 6B)
 - `/v1/reportes/liquidacion` (Fase 6C)
+
 
 
 

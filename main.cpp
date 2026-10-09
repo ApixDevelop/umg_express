@@ -1147,6 +1147,116 @@ int main() {
         return crow::response(200, res);
     });
 
+    // -------------------------------------------------------------------------
+    // MÓDULO: REPORTES - MANIFIESTO DE VEHÍCULO (Fase 6B)
+    // -------------------------------------------------------------------------
+    CROW_ROUTE(app, "/v1/reportes/manifiesto/<int>").methods(crow::HTTPMethod::GET)([](int idVehiculo) {
+        crow::json::wvalue res;
+        Reportes::DatosManifiestoVehiculo datos;
+        std::string errorMsg;
+
+        if (!Reportes::obtenerManifiestoVehiculo(Vehiculos::DEFAULT_FILE_VEHICULOS,
+                                                Despachos::DEFAULT_FILE_DESPACHOS,
+                                                Guias::DEFAULT_FILE_GUIAS,
+                                                Pilotos::DEFAULT_FILE_PILOTOS,
+                                                Rutas::DEFAULT_FILE_RUTAS,
+                                                Sucursales::DEFAULT_FILE_SUCURSALES,
+                                                Clientes::DEFAULT_FILE_CLIENTES,
+                                                idVehiculo, datos, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            return crow::response(404, res);
+        }
+
+        crow::json::wvalue mJson;
+
+        // Vehículo
+        crow::json::wvalue vehJson;
+        vehJson["id"] = datos.vehiculo.id;
+        vehJson["placa"] = std::string(datos.vehiculo.placa);
+        vehJson["marcaModelo"] = std::string(datos.vehiculo.marcaModelo);
+        vehJson["capacidadPesoKg"] = datos.vehiculo.capacidadPesoKg;
+        vehJson["capacidadVolumenM3"] = datos.vehiculo.capacidadVolumenM3;
+        vehJson["estado"] = std::string(datos.vehiculo.estado);
+        mJson["vehiculo"] = std::move(vehJson);
+
+        // Piloto (si asignado)
+        if (datos.tienePiloto) {
+            crow::json::wvalue pilJson;
+            pilJson["id"] = datos.piloto.id;
+            pilJson["nombre"] = std::string(datos.piloto.nombre);
+            pilJson["licencia"] = std::string(datos.piloto.licencia);
+            pilJson["telefono"] = std::string(datos.piloto.telefono);
+            mJson["piloto"] = std::move(pilJson);
+        } else {
+            mJson["piloto"] = nullptr;
+        }
+
+        // Ruta principal
+        if (datos.tieneRutaPrincipal) {
+            crow::json::wvalue rutaJson;
+            rutaJson["id"] = datos.rutaPrincipal.id;
+            if (datos.tieneSucursalOrigen) {
+                crow::json::wvalue origJson;
+                origJson["id"] = datos.sucursalOrigen.id;
+                origJson["nombre"] = std::string(datos.sucursalOrigen.nombre);
+                origJson["direccion"] = std::string(datos.sucursalOrigen.direccion);
+                rutaJson["sucursalOrigen"] = std::move(origJson);
+            }
+            if (datos.tieneSucursalDestino) {
+                crow::json::wvalue destJson;
+                destJson["id"] = datos.sucursalDestino.id;
+                destJson["nombre"] = std::string(datos.sucursalDestino.nombre);
+                destJson["direccion"] = std::string(datos.sucursalDestino.direccion);
+                rutaJson["sucursalDestino"] = std::move(destJson);
+            }
+            mJson["ruta"] = std::move(rutaJson);
+        } else {
+            mJson["ruta"] = nullptr;
+        }
+
+        // Resumen
+        crow::json::wvalue resJson;
+        resJson["totalGuias"] = datos.totalGuias;
+        resJson["pesoTotalKg"] = datos.pesoTotalKg;
+        resJson["volumenTotalM3"] = datos.volumenTotalM3;
+        mJson["resumen"] = std::move(resJson);
+
+        // Guías
+        std::vector<crow::json::wvalue> listGuias;
+        for (const auto& gm : datos.guias) {
+            crow::json::wvalue gJson;
+            gJson["numeroGuia"] = gm.guia.numeroGuia;
+            gJson["estado"] = std::string(gm.guia.estado);
+            gJson["pesoRealKg"] = gm.guia.pesoRealKg;
+            gJson["pesoVolumetricoKg"] = gm.guia.pesoVolumetricoKg;
+            gJson["pesoFacturableKg"] = gm.guia.pesoFacturableKg;
+            gJson["volumenM3"] = gm.volumenM3;
+            gJson["costoTotal"] = gm.guia.costoTotal;
+
+            if (gm.tieneRemitente) {
+                crow::json::wvalue remJson;
+                remJson["id"] = gm.clienteRemitente.id;
+                remJson["nombre"] = std::string(gm.clienteRemitente.nombre);
+                gJson["remitente"] = std::move(remJson);
+            }
+
+            if (gm.tieneDestinatario) {
+                crow::json::wvalue destJson;
+                destJson["id"] = gm.clienteDestinatario.id;
+                destJson["nombre"] = std::string(gm.clienteDestinatario.nombre);
+                gJson["destinatario"] = std::move(destJson);
+            }
+
+            listGuias.push_back(std::move(gJson));
+        }
+        mJson["guias"] = std::move(listGuias);
+
+        res["success"] = true;
+        res["manifiesto"] = std::move(mJson);
+        return crow::response(200, res);
+    });
+
     std::cout << "Servidor UMG Express escuchando en puerto 18080..." << std::endl;
     app.bindaddr("127.0.0.1").port(18080).multithreaded().run();
 

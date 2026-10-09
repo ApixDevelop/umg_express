@@ -2,9 +2,9 @@
 
 ## Información General
 - **Proyecto**: UMG Express (Sistema Logístico y de Paquetería)
-- **Fase Actual**: Fase 6A — Reporte de rastreo de guías
+- **Fase Actual**: Fase 6B — Reporte de manifiesto de vehículo
 - **Estado de la Fase**: Completada
-- **Próxima Fase**: Fase 6B — Reporte de manifiesto por vehículo (Pendiente de autorización)
+- **Próxima Fase**: Fase 6C — Reporte de liquidación (Pendiente de autorización)
 
 ---
 
@@ -87,19 +87,29 @@
 ### Fase 6A — Reporte de Rastreo de Guías
 - **Estado**: COMPLETADA
 - **Trabajo Realizado**:
-  - Implementación del módulo de consultas de rastreo `Reportes::obtenerRastreoGuia` en `include/reportes.h`.
-  - Consolidación en tiempo real de datos binarios: `Guia`, `Cliente` (remitente y destinatario), `Ruta`, `Sucursal` (origen y destino), y `Despacho` con `Vehiculo` y `Piloto` asignados.
-  - Implementación del endpoint HTTP REST `GET /v1/reportes/rastreo/{numeroGuia}` en Crow (`main.cpp`).
-  - Suite de pruebas unitarias en `tests/test_reporte_rastreo.cpp` (`test_reporte_rastreo`).
-  - Documentación técnica creada y actualizada en `docs/reporte-rastreo.md`, `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
+  - Módulo `Reportes::obtenerRastreoGuia` en `include/reportes.h`.
+  - Endpoint HTTP REST `GET /v1/reportes/rastreo/{numeroGuia}`.
+  - Suite de pruebas unitarias en `tests/test_reporte_rastreo.cpp`.
+
+### Fase 6B — Reporte de Manifiesto de Vehículo
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Implementación del módulo `Reportes::obtenerManifiestoVehiculo` en `include/reportes.h`.
+  - Consolidación de datos del vehículo, piloto asignado, ruta principal y lista de guías despachadas con sus pesos y volúmenes acumulados.
+  - Desduplicación de guías en el manifiesto y soporte para vehículos sin cargas asignadas (retornando resumen en cero y arreglo de guías vacío).
+  - Implementación del endpoint HTTP REST `GET /v1/reportes/manifiesto/{idVehiculo}` en Crow (`main.cpp`).
+  - Suite de pruebas unitarias en `tests/test_reporte_manifiesto.cpp` (`test_reporte_manifiesto`).
+  - Documentación técnica creada y actualizada en `docs/reporte-manifiesto.md`, `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
 - **Pruebas Realizadas**:
-  - Suite unitaria ejecutada mediante `./test_reporte_rastreo` (0 errores).
-  - Pruebas de rastreo de guía en estado `"Creada"`, guía en estado `"Despachada"`, respuesta HTTP 404 para guía inexistente, validación de parámetros de URL y tolerancia a fallos de persistencia binaria.
-  - Recompilación limpia y pruebas completas verificadas con `./build.sh`.
+  - Suite unitaria ejecutada mediante `./test_reporte_manifiesto` (0 errores).
+  - Pruebas de vehículo con múltiples guías despachadas, vehículo sin guías asignadas, vehículo inexistente (404), ID de vehículo inválido (-1), prevención de guías duplicadas y exclusión de guías de otros vehículos.
+  - Pruebas de regresión ejecutadas con `./test_calculos && ./test_despacho && ./test_reporte_rastreo` (0 errores).
+  - Recompilación limpia verificada con `./build.sh`.
 - **Decisiones Importantes**:
-  - No se inventaron eventos ni estados ficticios de rastreo; sólo se reporta la información real existente en la persistencia.
+  - El manifiesto desduplica guías si existieron múltiples registros históricos de despacho para el mismo vehículo.
+  - El volumen se calcula individualmente en $m^3$ mediante `(largoCm * anchoCm * altoCm) / 1000000.0`.
 - **Problemas Pendientes**:
-  - Ninguno. El reporte de rastreo de guías está 100% verificado y funcional.
+  - Ninguno. El reporte de manifiesto de vehículo está 100% verificado y funcional.
 
 ---
 
@@ -118,11 +128,12 @@
 | **Fase 5B** | Cálculo de peso volumétrico y costos (fórmulas, peso facturable, costo total) | **Completada** |
 | **Fase 5C** | Despacho y Operaciones (Asignación de vehículos, capacidad, estado) | **Completada** |
 | **Fase 6A** | Reporte de Rastreo de Guías (`GET /v1/reportes/rastreo/{numeroGuia}`) | **Completada** |
-| **Fase 6B** | Reporte de Manifiesto por Vehículo | Pendiente |
+| **Fase 6B** | Reporte de Manifiesto por Vehículo (`GET /v1/reportes/manifiesto/{idVehiculo}`) | **Completada** |
 | **Fase 6C** | Reporte de Liquidación | Pendiente |
 | **Fase 7** | API completa e integración con React | Pendiente |
 | **Fase 8** | Pruebas y estabilización | Pendiente |
 | **Fase 9** | Documentación y revisión final | Pendiente |
+
 
 
 
