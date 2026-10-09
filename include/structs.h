@@ -113,4 +113,20 @@ struct Guia {
     bool activo;
 };
 
+// -----------------------------------------------------------------------------
+// Estructura: Despacho
+// Archivo: data/despachos.dat
+// -----------------------------------------------------------------------------
+struct Despacho {
+    int id;
+    int idVehiculo;
+    int idPiloto;
+    int numeroGuia;
+    double pesoKg;
+    double volumenM3;
+    char fechaDespacho[30];
+    bool activo;
+};
+
 #endif // STRUCTS_H
+
