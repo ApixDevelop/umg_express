@@ -216,7 +216,128 @@ inline bool obtenerManifiestoVehiculo(const char* vehiculosFilepath,
     return true;
 }
 
-} // namespace Reportes
+#include <map>
 
+struct ResumenEstadoLiquidacion {
+    std::string estado;
+    int cantidadGuias;
+    double importeTotal;
+};
+
+struct ResumenRutaLiquidacion {
+    int idRuta;
+    int cantidadGuias;
+    double importeTotal;
+};
+
+struct ResumenSucursalLiquidacion {
+    int idSucursal;
+    std::string nombre;
+    int cantidadGuias;
+    double importeTotal;
+};
+
+struct GuiaLiquidacion {
+    Guia guia;
+    bool tieneRuta;
+    Ruta ruta;
+    bool tieneSucursalOrigen;
+    Sucursal sucursalOrigen;
+};
+
+struct DatosLiquidacion {
+    int totalGuiasConsideradas;
+    int totalGuiasInactivas;
+    double importeTotalFacturado;
+    double cobradoConfirmado;
+    std::vector<ResumenEstadoLiquidacion> resumenPorEstado;
+    std::vector<ResumenRutaLiquidacion> resumenPorRuta;
+    std::vector<ResumenSucursalLiquidacion> resumenPorSucursalOrigen;
+    std::vector<GuiaLiquidacion> guias;
+};
+
+// Obtiene el reporte consolidado de liquidación financiera y operativa (Fase 6C)
+inline bool obtenerReporteLiquidacion(const char* guiasFilepath,
+                                      const char* rutasFilepath,
+                                      const char* sucursalesFilepath,
+                                      DatosLiquidacion& outDatos,
+                                      std::string& errorMsg) {
+    outDatos.totalGuiasConsideradas = 0;
+    outDatos.totalGuiasInactivas = 0;
+    outDatos.importeTotalFacturado = 0.0;
+    outDatos.cobradoConfirmado = 0.0; // UMG Express no tiene tabla de pagos; cobradoConfirmado es 0.0
+    outDatos.resumenPorEstado.clear();
+    outDatos.resumenPorRuta.clear();
+    outDatos.resumenPorSucursalOrigen.clear();
+    outDatos.guias.clear();
+
+    if (guiasFilepath == nullptr) {
+        return true;
+    }
+
+    std::vector<Guia> todasGuias = Persistence::leerTodos<Guia>(guiasFilepath, false);
+
+    std::map<std::string, ResumenEstadoLiquidacion> mapEstados;
+    std::map<int, ResumenRutaLiquidacion> mapRutas;
+    std::map<int, ResumenSucursalLiquidacion> mapSucursales;
+
+    for (const auto& g : todasGuias) {
+        if (!g.activo) {
+            outDatos.totalGuiasInactivas++;
+            continue;
+        }
+
+        outDatos.totalGuiasConsideradas++;
+        outDatos.importeTotalFacturado += g.costoTotal;
+
+        // 1. Agrupar por Estado
+        std::string est = std::string(g.estado);
+        if (est.empty()) est = "Desconocido";
+        mapEstados[est].estado = est;
+        mapEstados[est].cantidadGuias++;
+        mapEstados[est].importeTotal += g.costoTotal;
+
+        // 2. Agrupar por Ruta
+        mapRutas[g.idRuta].idRuta = g.idRuta;
+        mapRutas[g.idRuta].cantidadGuias++;
+        mapRutas[g.idRuta].importeTotal += g.costoTotal;
+
+        // 3. Obtener Ruta y Sucursal de Origen
+        GuiaLiquidacion gl;
+        gl.guia = g;
+        gl.tieneRuta = (rutasFilepath != nullptr) && Rutas::obtenerRutaPorId(rutasFilepath, g.idRuta, gl.ruta);
+
+        if (gl.tieneRuta && sucursalesFilepath != nullptr) {
+            gl.tieneSucursalOrigen = Sucursales::obtenerSucursalPorId(sucursalesFilepath, gl.ruta.idSucursalOrigen, gl.sucursalOrigen);
+            if (gl.tieneSucursalOrigen) {
+                int idSuc = gl.sucursalOrigen.id;
+                mapSucursales[idSuc].idSucursal = idSuc;
+                mapSucursales[idSuc].nombre = std::string(gl.sucursalOrigen.nombre);
+                mapSucursales[idSuc].cantidadGuias++;
+                mapSucursales[idSuc].importeTotal += g.costoTotal;
+            }
+        } else {
+            gl.tieneSucursalOrigen = false;
+        }
+
+        outDatos.guias.push_back(gl);
+    }
+
+    for (const auto& pair : mapEstados) {
+        outDatos.resumenPorEstado.push_back(pair.second);
+    }
+
+    for (const auto& pair : mapRutas) {
+        outDatos.resumenPorRuta.push_back(pair.second);
+    }
+
+    for (const auto& pair : mapSucursales) {
+        outDatos.resumenPorSucursalOrigen.push_back(pair.second);
+    }
+
+    return true;
+}
+
+} // namespace Reportes
 
 #endif // REPORTES_H
