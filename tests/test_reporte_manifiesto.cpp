@@ -145,7 +145,7 @@ void probarReporteManifiestoVehiculo() {
     dDup.volumenM3 = 0.06;
     std::strncpy(dDup.fechaDespacho, "2026-10-09 10:00:00", sizeof(dDup.fechaDespacho) - 1);
     dDup.activo = true;
-    Persistence::guardarRegistro<Despacho>(FILE_DESPACHOS_TEST_6B, dDup);
+    Persistence::insertar<Despacho>(FILE_DESPACHOS_TEST_6B, dDup);
 
     Reportes::DatosManifiestoVehiculo mDup;
     bool okMDup = Reportes::obtenerManifiestoVehiculo(FILE_VEHICULOS_TEST_6B, FILE_DESPACHOS_TEST_6B, FILE_GUIAS_TEST_6B, FILE_PILOTOS_TEST_6B, FILE_RUTAS_TEST_6B, FILE_SUCURSALES_TEST_6B, FILE_CLIENTES_TEST_6B, v1.id, mDup, err);
