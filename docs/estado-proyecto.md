@@ -2,9 +2,9 @@
 
 ## Información General
 - **Proyecto**: UMG Express (Sistema Logístico y de Paquetería)
-- **Fase Actual**: Fase 5A — Emisión de Guías
+- **Fase Actual**: Fase 6C — Reporte de liquidación
 - **Estado de la Fase**: Completada
-- **Próxima Fase**: Fase 5B — Despacho y Operaciones (Pendiente de autorización)
+- **Próxima Fase**: Fase 7 — API completa e integración con React (Pendiente de autorización)
 
 ---
 
@@ -64,29 +64,59 @@
 ### Fase 5A — Emisión de Guías
 - **Estado**: COMPLETADA
 - **Trabajo Realizado**:
-  - Implementación de la entidad `Guia` en `include/structs.h` y persistencia binaria en `data/guias.dat` (`include/persistence.h`).
-  - Desarrollo de la lógica de negocio en `include/transacciones.h`:
-    - Generación correlativa auto-incremental de números de guía iniciando en `1001`.
-    - Validaciones relacionales: `idClienteRemitente` y `idClienteDestinatario` deben existir y estar activos (`activo = true`).
-    - Validación de diferencia de clientes: `idClienteRemitente != idClienteDestinatario`.
-    - Validación de ruta: `idRuta` debe existir y estar activa (`activo = true`).
-    - Validaciones de formato: peso > 0, dimensiones > 0, campos no vacíos.
-    - Consulta de listado de guías y búsqueda por número de guía.
-  - Implementación de endpoints REST HTTP en Crow (`main.cpp`):
-    - `POST /v1/transacciones/guias` (201 Created / 400 Bad Request / 404 Not Found)
-    - `GET /v1/transacciones/guias` (200 OK)
-    - `GET /v1/transacciones/guias/{numeroGuia}` (200 OK / 404 Not Found)
-  - Suite de pruebas unitarias en `tests/test_guias.cpp` (`test_guias`).
-  - Documentación técnica creada y actualizada en `docs/guias.md`, `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
+  - Implementación de la entidad `Guia` en `include/structs.h` y persistencia binaria en `data/guias.dat`.
+  - Lógica de negocio en `include/transacciones.h` con numeración correlativa (1001+) y validaciones relacionales.
+  - Endpoints REST HTTP bajo `/v1/transacciones/guias`.
+  - Suite de pruebas unitarias en `tests/test_guias.cpp`.
+
+### Fase 5B — Cálculo de Peso Volumétrico y Costos
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Motor de cálculo matemático en `include/transacciones.h` (peso volumétrico, peso facturable, costo total).
+  - Integración de los campos calculados (`pesoVolumetricoKg`, `pesoFacturableKg`, `costoTotal`) en `Guia` y `data/guias.dat`.
+  - Suite de pruebas unitarias en `tests/test_calculos.cpp`.
+
+### Fase 5C — Despacho y Validación de Capacidad
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Implementación de la entidad `Despacho` en `include/structs.h` y persistencia binaria en `data/despachos.dat`.
+  - Desarrollo del módulo `Despachos` en `include/transacciones.h` para control de peso/volumen y despacho.
+  - Endpoints HTTP REST `POST /v1/transacciones/despacho` y `GET /v1/transacciones/despacho`.
+  - Suite de pruebas unitarias en `tests/test_despacho.cpp`.
+
+### Fase 6A — Reporte de Rastreo de Guías
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Módulo `Reportes::obtenerRastreoGuia` en `include/reportes.h`.
+  - Endpoint HTTP REST `GET /v1/reportes/rastreo/{numeroGuia}`.
+  - Suite de pruebas unitarias en `tests/test_reporte_rastreo.cpp`.
+
+### Fase 6B — Reporte de Manifiesto de Vehículo
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Módulo `Reportes::obtenerManifiestoVehiculo` en `include/reportes.h`.
+  - Endpoint HTTP REST `GET /v1/reportes/manifiesto/{idVehiculo}`.
+  - Suite de pruebas unitarias en `tests/test_reporte_manifiesto.cpp`.
+
+### Fase 6C — Reporte de Liquidación Financiera
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Implementación del módulo `Reportes::obtenerReporteLiquidacion` en `include/reportes.h`.
+  - Consolidación financiera y de volumen de guías, acumulando `costoTotal` pre-registrado y agrupando por estado, ruta y sucursal de origen.
+  - Exclusión adecuada de guías inactivas (`activo == false`) de la sumatoria facturada para no distorsionar ingresos.
+  - Reporte explícito de `cobradoConfirmado: 0.0` con aclaración fundamentada de la ausencia de módulo de caja/pagos post-entrega.
+  - Implementación del endpoint HTTP REST `GET /v1/reportes/liquidacion` en Crow (`main.cpp`).
+  - Suite de pruebas unitarias en `tests/test_reporte_liquidacion.cpp` (`test_reporte_liquidacion`).
+  - Documentación técnica creada y actualizada en `docs/reporte-liquidacion.md`, `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
 - **Pruebas Realizadas**:
-  - Pruebas unitarias ejecutadas mediante `./test_guias` (0 errores).
-  - Peticiones HTTP reales ejecutadas vía `curl` contra el servidor en vivo en `127.0.0.1:18080`.
+  - Suite unitaria ejecutada mediante `./test_reporte_liquidacion` (0 errores).
+  - Pruebas con múltiples guías e importes, reporte en cero sin guías, tratamiento de guías inactivas, ausencia de duplicados y tolerancia a puntero nulo de archivo.
+  - Pruebas de regresión completas ejecutadas con `./test_calculos && ./test_despacho && ./test_reporte_rastreo && ./test_reporte_manifiesto` (0 errores).
   - Recompilación limpia verificada con `./build.sh`.
 - **Decisiones Importantes**:
-  - `Guia` utiliza `numeroGuia` como clave primaria para búsquedas y consultas directas en lugar de `id`.
-  - Se mantuvo fuera del alcance de la Fase 5A el peso volumétrico, el cálculo de costos, la asignación de vehículos y el despacho según las restricciones acordadas.
+  - No se recalculan tarifas al liquidar para respetar la cobranza histórica registrada en la emisión de cada guía.
 - **Problemas Pendientes**:
-  - Ninguno. La emisión y consulta de guías está 100% probada y funcional.
+  - Ninguno. El reporte de liquidación financiera está 100% verificado y funcional.
 
 ---
 
@@ -102,9 +132,17 @@
 | **Fase 4B** | CRUD de Rutas y Vehículos (`include/rutas.h`, `include/vehiculos.h`, API REST) | **Completada** |
 | **Fase 4C** | CRUD de Pilotos y Tarifas (`include/pilotos.h`, `include/tarifas.h`, API REST) | **Completada** |
 | **Fase 5A** | Emisión y consulta de Guías (`include/transacciones.h`, `guias.dat`, API REST) | **Completada** |
-| **Fase 5B** | Despacho y Operaciones (Asignación de vehículos, peso volumétrico, capacidad, costo) | Pendiente |
-| **Fase 6** | Reportes (Rastreo, Manifiestos, Liquidación) | Pendiente |
+| **Fase 5B** | Cálculo de peso volumétrico y costos (fórmulas, peso facturable, costo total) | **Completada** |
+| **Fase 5C** | Despacho y Operaciones (Asignación de vehículos, capacidad, estado) | **Completada** |
+| **Fase 6A** | Reporte de Rastreo de Guías (`GET /v1/reportes/rastreo/{numeroGuia}`) | **Completada** |
+| **Fase 6B** | Reporte de Manifiesto por Vehículo (`GET /v1/reportes/manifiesto/{idVehiculo}`) | **Completada** |
+| **Fase 6C** | Reporte de Liquidación (`GET /v1/reportes/liquidacion`) | **Completada** |
 | **Fase 7** | API completa e integración con React | Pendiente |
 | **Fase 8** | Pruebas y estabilización | Pendiente |
 | **Fase 9** | Documentación y revisión final | Pendiente |
+
+
+
+
+
 
