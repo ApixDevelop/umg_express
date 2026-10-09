@@ -4,6 +4,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
+#include <set>
+#include <algorithm>
 #include <cstring>
 
 #include "structs.h"
@@ -215,8 +218,6 @@ inline bool obtenerManifiestoVehiculo(const char* vehiculosFilepath,
 
     return true;
 }
-
-#include <map>
 
 struct ResumenEstadoLiquidacion {
     std::string estado;

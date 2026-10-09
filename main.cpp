@@ -45,7 +45,7 @@ int main() {
         res["estado"] = "ok";
         res["mensaje"] = "Servidor UMG Express API en funcionamiento";
         res["version"] = "1.0.0";
-        res["fase"] = "Fase 5A - Emisión de Guías completada";
+        res["fase"] = "Fase 7 - Integración y revisión general de la API completada";
         return crow::response(200, res);
     });
 
