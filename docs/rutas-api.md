@@ -418,9 +418,55 @@ Genera el manifiesto de carga detallado para un vehículo especificando las guí
 
 ---
 
-## 13. Endpoints Pendientes (Próximas Fases)
+## 13. Reportes - Liquidación Financiera (`/v1/reportes/liquidacion`) - Implementado en Fase 6C
 
-- `/v1/reportes/liquidacion` (Fase 6C)
+### GET `/v1/reportes/liquidacion`
+Genera el reporte consolidado de liquidación financiera y operativa sumando los costos facturados registrados, desglosando guías por estado, ruta y sucursal de origen.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "liquidacion": {
+      "resumenFinanciero": {
+        "totalGuiasConsideradas": 2,
+        "totalGuiasInactivas": 1,
+        "importeTotalFacturado": 440.3,
+        "cobradoConfirmado": 0.0
+      },
+      "guiasPorEstado": [
+        { "estado": "Creada", "cantidadGuias": 1, "importeTotal": 142.8 },
+        { "estado": "Despachada", "cantidadGuias": 1, "importeTotal": 297.5 }
+      ],
+      "resumenPorRuta": [
+        { "idRuta": 1, "cantidadGuias": 2, "importeTotal": 440.3 }
+      ],
+      "resumenPorSucursalOrigen": [
+        { "idSucursal": 1, "nombre": "Sucursal Guatemala Central", "cantidadGuias": 2, "importeTotal": 440.3 }
+      ],
+      "desgloseGuias": [
+        {
+          "numeroGuia": 1001,
+          "estado": "Creada",
+          "pesoFacturableKg": 12.0,
+          "costoTotal": 142.8,
+          "idClienteRemitente": 1,
+          "idClienteDestinatario": 2,
+          "idRuta": 1,
+          "sucursalOrigen": "Sucursal Guatemala Central"
+        }
+      ]
+    }
+  }
+  ```
+
+---
+
+## 14. Endpoints Pendientes (Próximas Fases)
+
+- Ningún endpoint de reporte pendiente para Fase 6.
+- Integración completa API REST para Frontend React (Fase 7).
+
 
 
 

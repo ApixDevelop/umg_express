@@ -10,8 +10,9 @@ clang++ -std=c++17 -I/usr/local/include -Iinclude tests/test_calculos.cpp -o tes
 clang++ -std=c++17 -I/usr/local/include -Iinclude tests/test_despacho.cpp -o test_despacho
 clang++ -std=c++17 -I/usr/local/include -Iinclude tests/test_reporte_rastreo.cpp -o test_reporte_rastreo
 clang++ -std=c++17 -I/usr/local/include -Iinclude tests/test_reporte_manifiesto.cpp -o test_reporte_manifiesto
+clang++ -std=c++17 -I/usr/local/include -Iinclude tests/test_reporte_liquidacion.cpp -o test_reporte_liquidacion
 
-echo "=== Compilación exitosa. Ejecutables creados: ./server, ./test_calculos, ./test_despacho, ./test_reporte_rastreo, ./test_reporte_manifiesto ==="
+echo "=== Compilación exitosa. Ejecutables creados: ./server, ./test_calculos, ./test_despacho, ./test_reporte_rastreo, ./test_reporte_manifiesto, ./test_reporte_liquidacion ==="
 
 
 
