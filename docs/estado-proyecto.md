@@ -2,9 +2,9 @@
 
 ## Información General
 - **Proyecto**: UMG Express (Sistema Logístico y de Paquetería)
-- **Fase Actual**: Fase 5B — Cálculo de peso volumétrico y costos
+- **Fase Actual**: Fase 5C — Despacho y validación de capacidad
 - **Estado de la Fase**: Completada
-- **Próxima Fase**: Fase 5C — Despacho y Operaciones (Pendiente de autorización)
+- **Próxima Fase**: Fase 6 — Reportes (Rastreo, Manifiestos, Liquidación) (Pendiente de autorización)
 
 ---
 
@@ -72,26 +72,34 @@
 ### Fase 5B — Cálculo de Peso Volumétrico y Costos
 - **Estado**: COMPLETADA
 - **Trabajo Realizado**:
-  - Implementación del motor de cálculo matemático en `include/transacciones.h`:
-    - Peso volumétrico: `(largo * ancho * alto) / 5000.0`.
-    - Peso facturable: `max(pesoReal, pesoVolumetrico)`.
-    - Volumen en m3: `(largo * ancho * alto) / 1000000.0`.
-    - Costo total: `tarifaBaseRuta + (pesoFacturable * precioPorKg) + (volumenM3 * precioPorM3) + recargoEspecial`.
-  - Integración de los campos calculados (`pesoVolumetricoKg`, `pesoFacturableKg`, `costoTotal`) en `struct Guia` y su persistencia binaria en `data/guias.dat`.
-  - Actualización de los endpoints REST en Crow (`main.cpp`):
-    - `POST /v1/transacciones/guias` (retorna guía creada con campos calculados).
-    - `GET /v1/transacciones/guias` y `GET /v1/transacciones/guias/{numeroGuia}` (retornan lista/guía con campos calculados).
-  - Suite de pruebas unitarias en `tests/test_calculos.cpp` (`test_calculos`).
-  - Documentación técnica creada y actualizada en `docs/calculos-guias.md`, `docs/guias.md`, `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
+  - Motor de cálculo matemático en `include/transacciones.h` (peso volumétrico, peso facturable, costo total).
+  - Integración de los campos calculados (`pesoVolumetricoKg`, `pesoFacturableKg`, `costoTotal`) en `Guia` y `data/guias.dat`.
+  - Suite de pruebas unitarias en `tests/test_calculos.cpp`.
+
+### Fase 5C — Despacho y Validación de Capacidad
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Implementación de la entidad `Despacho` en `include/structs.h` y persistencia binaria en `data/despachos.dat`.
+  - Desarrollo del módulo `Despachos` en `include/transacciones.h`:
+    - Control acumulativo de peso: $\sum \text{pesoFacturableKg} \le \text{capacidadPesoKg}$.
+    - Control acumulativo de volumen: $\sum \text{volumenM3} \le \text{capacidadVolumenM3}$.
+    - Bloqueo automático cuando se exceden los límites físicos del vehículo.
+    - Rechazo de vehículos inactivos o en estado `"En taller"`.
+    - Rechazo de guías inactivas, ya despachadas o entregadas.
+    - Actualización automática de `Guia.estado` a `"Despachada"` y `Vehiculo.estado` a `"En ruta"`.
+  - Implementación de los endpoints HTTP REST en Crow (`main.cpp`):
+    - `POST /v1/transacciones/despacho` (201 Created / 400 Bad Request / 404 Not Found)
+    - `GET /v1/transacciones/despacho` (200 OK)
+  - Suite de pruebas unitarias en `tests/test_despacho.cpp` (`test_despacho`).
+  - Documentación técnica creada y actualizada en `docs/despacho.md`, `docs/rutas-api.md`, `docs/arquitectura.md` y `docs/estado-proyecto.md`.
 - **Pruebas Realizadas**:
-  - Pruebas unitarias ejecutadas con `./test_calculos` (0 errores).
-  - Verificación de fórmulas matemáticas directas, comparaciones peso real vs volumétrico y cálculo de costo total con tarifa.
+  - Suite unitaria ejecutada mediante `./test_despacho` (0 errores).
+  - Pruebas de despacho exitoso, rechazo por exceso de peso, rechazo por exceso de volumen, rechazo por vehículo en taller, rechazo de guía ya despachada y verificación de persistencia binaria en disco.
   - Recompilación limpia verificada con `./build.sh`.
 - **Decisiones Importantes**:
-  - Se mantuvo compatibilidad binaria estricta en `struct Guia` sin alterar el diseño de tamaño fijo.
-  - Se mantuvo fuera del alcance de la Fase 5B el despacho, asignación de vehículos, validación de capacidad de transporte y reportes según las instrucciones explícitas.
+  - Se mantuvo fuera del alcance de la Fase 5C el módulo de reportes (rastreo, manifiesto, liquidación) según las instrucciones explícitas.
 - **Problemas Pendientes**:
-  - Ninguno. El cálculo de peso volumétrico y costo total está 100% probado y funcional.
+  - Ninguno. El módulo de despacho y control de capacidad está 100% probado y funcional.
 
 ---
 
@@ -108,10 +116,11 @@
 | **Fase 4C** | CRUD de Pilotos y Tarifas (`include/pilotos.h`, `include/tarifas.h`, API REST) | **Completada** |
 | **Fase 5A** | Emisión y consulta de Guías (`include/transacciones.h`, `guias.dat`, API REST) | **Completada** |
 | **Fase 5B** | Cálculo de peso volumétrico y costos (fórmulas, peso facturable, costo total) | **Completada** |
-| **Fase 5C** | Despacho y Operaciones (Asignación de vehículos, capacidad, estado) | Pendiente |
+| **Fase 5C** | Despacho y Operaciones (Asignación de vehículos, capacidad, estado) | **Completada** |
 | **Fase 6** | Reportes (Rastreo, Manifiestos, Liquidación) | Pendiente |
 | **Fase 7** | API completa e integración con React | Pendiente |
 | **Fase 8** | Pruebas y estabilización | Pendiente |
 | **Fase 9** | Documentación y revisión final | Pendiente |
+
 
 
