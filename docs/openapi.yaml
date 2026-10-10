@@ -1,0 +1,1840 @@
+openapi: 3.0.3
+info:
+  title: UMG Express API
+  description: |
+    API REST para el sistema de gestión logística y paquetería UMG Express.
+    Desarrollado en C++17 utilizando el framework Crow y persistencia binaria (.dat).
+  version: 1.0.0
+  contact:
+    name: UMG Express Team
+servers:
+  - url: http://127.0.0.1:18080
+    description: Servidor Local (Crow C++)
+
+tags:
+  - name: Sistema
+    description: Health Check y utilidades
+  - name: Autenticación
+    description: Control de acceso y gestión de usuarios
+  - name: Sucursales
+    description: Catálogo de sucursales origen y destino
+  - name: Clientes
+    description: Catálogo de clientes remitentes y destinatarios
+  - name: Rutas
+    description: Catálogo de rutas de transporte entre sucursales
+  - name: Vehículos
+    description: Catálogo de flotilla vehicular
+  - name: Pilotos
+    description: Catálogo de conductores/pilotos
+  - name: Tarifas
+    description: Catálogo de tarifarios por peso y volumen
+  - name: Transacciones - Guías
+    description: Emisión y consulta de guías de paquete
+  - name: Transacciones - Despacho
+    description: Asignación y despacho de carga en vehículos
+  - name: Reportes
+    description: Rastreo, manifiestos de vehículos y liquidaciones financieras
+
+paths:
+  /v1/health:
+    get:
+      tags:
+        - Sistema
+      summary: Verificación del estado del servidor
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Servidor activo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  mensaje:
+                    type: string
+                    example: UMG Express API funcionando correctamente
+
+  /v1/auth/login:
+    post:
+      tags:
+        - Autenticación
+      summary: Iniciar sesión de usuario
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  example: admin123
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Autenticación exitosa
+                  usuario:
+                    $ref: '#/components/schemas/Usuario'
+        '400':
+          description: Faltan credenciales
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Credenciales inválidas o usuario inactivo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/auth/usuarios:
+    post:
+      tags:
+        - Autenticación
+      summary: Registrar un nuevo usuario
+      operationId: createUsuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+                - nombre
+                - rol
+              properties:
+                username:
+                  type: string
+                  example: operador1
+                password:
+                  type: string
+                  example: pass123
+                nombre:
+                  type: string
+                  example: Carlos Gómez
+                rol:
+                  type: string
+                  enum: [Administrador, Operador, Auditor]
+                  example: Operador
+      responses:
+        '201':
+          description: Usuario creado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Usuario creado exitosamente
+                  usuario:
+                    $ref: '#/components/schemas/Usuario'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Username ya existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/sucursales:
+    get:
+      tags:
+        - Sucursales
+      summary: Listar todas las sucursales activas
+      operationId: getSucursales
+      responses:
+        '200':
+          description: Lista de sucursales
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  sucursales:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Sucursal'
+    post:
+      tags:
+        - Sucursales
+      summary: Crear una nueva sucursal
+      operationId: createSucursal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SucursalInput'
+      responses:
+        '201':
+          description: Sucursal creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Sucursal creada exitosamente
+                  sucursal:
+                    $ref: '#/components/schemas/Sucursal'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/sucursales/{id}:
+    get:
+      tags:
+        - Sucursales
+      summary: Obtener sucursal por ID
+      operationId: getSucursalById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Sucursal encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  sucursal:
+                    $ref: '#/components/schemas/Sucursal'
+        '404':
+          description: Sucursal no encontrada o inactiva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Sucursales
+      summary: Actualizar una sucursal existente
+      operationId: updateSucursal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SucursalInput'
+      responses:
+        '200':
+          description: Sucursal actualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Sucursal actualizada exitosamente
+                  sucursal:
+                    $ref: '#/components/schemas/Sucursal'
+        '404':
+          description: Sucursal no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Sucursales
+      summary: Eliminar sucursal (baja lógica)
+      operationId: deleteSucursal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Sucursal eliminada lógicamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '404':
+          description: Sucursal no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/clientes:
+    get:
+      tags:
+        - Clientes
+      summary: Listar todos los clientes activos
+      operationId: getClientes
+      responses:
+        '200':
+          description: Lista de clientes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  clientes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Cliente'
+    post:
+      tags:
+        - Clientes
+      summary: Crear un nuevo cliente
+      operationId: createCliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClienteInput'
+      responses:
+        '201':
+          description: Cliente creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Cliente creado exitosamente
+                  cliente:
+                    $ref: '#/components/schemas/Cliente'
+        '409':
+          description: El NIT del cliente ya existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/clientes/{id}:
+    get:
+      tags:
+        - Clientes
+      summary: Obtener cliente por ID
+      operationId: getClienteById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Cliente encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  cliente:
+                    $ref: '#/components/schemas/Cliente'
+        '404':
+          description: Cliente no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Clientes
+      summary: Actualizar cliente
+      operationId: updateCliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClienteInput'
+      responses:
+        '200':
+          description: Cliente actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Cliente actualizado exitosamente
+                  cliente:
+                    $ref: '#/components/schemas/Cliente'
+        '404':
+          description: Cliente no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Clientes
+      summary: Eliminar cliente (baja lógica)
+      operationId: deleteCliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Cliente eliminado lógicamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '404':
+          description: Cliente no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/rutas:
+    get:
+      tags:
+        - Rutas
+      summary: Listar todas las rutas activas
+      operationId: getRutas
+      responses:
+        '200':
+          description: Lista de rutas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  rutas:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ruta'
+    post:
+      tags:
+        - Rutas
+      summary: Crear una nueva ruta
+      operationId: createRuta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RutaInput'
+      responses:
+        '201':
+          description: Ruta creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Ruta creada exitosamente
+                  ruta:
+                    $ref: '#/components/schemas/Ruta'
+        '404':
+          description: Sucursal origen o destino no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/rutas/{id}:
+    get:
+      tags:
+        - Rutas
+      summary: Obtener ruta por ID
+      operationId: getRutaById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Ruta encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  ruta:
+                    $ref: '#/components/schemas/Ruta'
+        '404':
+          description: Ruta no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Rutas
+      summary: Actualizar ruta
+      operationId: updateRuta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RutaInput'
+      responses:
+        '200':
+          description: Ruta actualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Ruta actualizada exitosamente
+                  ruta:
+                    $ref: '#/components/schemas/Ruta'
+        '404':
+          description: Ruta o sucursal no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Rutas
+      summary: Eliminar ruta (baja lógica)
+      operationId: deleteRuta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Ruta eliminada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+
+  /v1/vehiculos:
+    get:
+      tags:
+        - Vehículos
+      summary: Listar todos los vehículos activos
+      operationId: getVehiculos
+      responses:
+        '200':
+          description: Lista de vehículos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  vehiculos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Vehiculo'
+    post:
+      tags:
+        - Vehículos
+      summary: Registrar nuevo vehículo
+      operationId: createVehiculo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehiculoInput'
+      responses:
+        '201':
+          description: Vehículo registrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Vehículo creado exitosamente
+                  vehiculo:
+                    $ref: '#/components/schemas/Vehiculo'
+        '409':
+          description: Placa ya registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/vehiculos/{id}:
+    get:
+      tags:
+        - Vehículos
+      summary: Obtener vehículo por ID
+      operationId: getVehiculoById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Vehículo encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  vehiculo:
+                    $ref: '#/components/schemas/Vehiculo'
+        '404':
+          description: Vehículo no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Vehículos
+      summary: Actualizar datos de vehículo
+      operationId: updateVehiculo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehiculoInput'
+      responses:
+        '200':
+          description: Vehículo actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Vehículo actualizado exitosamente
+                  vehiculo:
+                    $ref: '#/components/schemas/Vehiculo'
+        '404':
+          description: Vehículo no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Vehículos
+      summary: Eliminar vehículo (baja lógica)
+      operationId: deleteVehiculo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Vehículo eliminado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+
+  /v1/pilotos:
+    get:
+      tags:
+        - Pilotos
+      summary: Listar todos los pilotos activos
+      operationId: getPilotos
+      responses:
+        '200':
+          description: Lista de pilotos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  pilotos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Piloto'
+    post:
+      tags:
+        - Pilotos
+      summary: Registrar nuevo piloto
+      operationId: createPiloto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PilotoInput'
+      responses:
+        '201':
+          description: Piloto registrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Piloto creado exitosamente
+                  piloto:
+                    $ref: '#/components/schemas/Piloto'
+        '409':
+          description: Número de licencia ya existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/pilotos/{id}:
+    get:
+      tags:
+        - Pilotos
+      summary: Obtener piloto por ID
+      operationId: getPilotoById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Piloto encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  piloto:
+                    $ref: '#/components/schemas/Piloto'
+        '404':
+          description: Piloto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Pilotos
+      summary: Actualizar datos de piloto
+      operationId: updatePiloto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PilotoInput'
+      responses:
+        '200':
+          description: Piloto actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Piloto actualizado exitosamente
+                  piloto:
+                    $ref: '#/components/schemas/Piloto'
+        '404':
+          description: Piloto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Pilotos
+      summary: Eliminar piloto (baja lógica)
+      operationId: deletePiloto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Piloto eliminado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+
+  /v1/tarifas:
+    get:
+      tags:
+        - Tarifas
+      summary: Listar todas las tarifas activas
+      operationId: getTarifas
+      responses:
+        '200':
+          description: Lista de tarifas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  tarifas:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tarifa'
+    post:
+      tags:
+        - Tarifas
+      summary: Crear nueva tarifa
+      operationId: createTarifa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TarifaInput'
+      responses:
+        '201':
+          description: Tarifa creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Tarifa creada exitosamente
+                  tarifa:
+                    $ref: '#/components/schemas/Tarifa'
+        '409':
+          description: Tipo de carga ya existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/tarifas/{id}:
+    get:
+      tags:
+        - Tarifas
+      summary: Obtener tarifa por ID
+      operationId: getTarifaById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Tarifa encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  tarifa:
+                    $ref: '#/components/schemas/Tarifa'
+        '404':
+          description: Tarifa no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Tarifas
+      summary: Actualizar tarifa
+      operationId: updateTarifa
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TarifaInput'
+      responses:
+        '200':
+          description: Tarifa actualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Tarifa actualizada exitosamente
+                  tarifa:
+                    $ref: '#/components/schemas/Tarifa'
+        '404':
+          description: Tarifa no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Tarifas
+      summary: Eliminar tarifa (baja lógica)
+      operationId: deleteTarifa
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Tarifa eliminada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+
+  /v1/transacciones/guias:
+    get:
+      tags:
+        - Transacciones - Guías
+      summary: Listar todas las guías de paquete emitidas
+      operationId: getGuias
+      responses:
+        '200':
+          description: Lista de guías
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  guias:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Guia'
+    post:
+      tags:
+        - Transacciones - Guías
+      summary: Emitir una nueva guía con cálculo automático de peso volumétrico y tarifa
+      operationId: createGuia
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idClienteRemitente
+                - idClienteDestinatario
+                - idRuta
+                - pesoRealKg
+                - largoCm
+                - anchoCm
+                - altoCm
+              properties:
+                idClienteRemitente:
+                  type: integer
+                  example: 1
+                idClienteDestinatario:
+                  type: integer
+                  example: 2
+                idRuta:
+                  type: integer
+                  example: 1
+                pesoRealKg:
+                  type: number
+                  format: float
+                  example: 5.0
+                largoCm:
+                  type: number
+                  format: float
+                  example: 60.0
+                anchoCm:
+                  type: number
+                  format: float
+                  example: 50.0
+                altoCm:
+                  type: number
+                  format: float
+                  example: 40.0
+                idTarifa:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: Guía emitida exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Guía creada exitosamente con peso volumétrico y costo calculados
+                  guia:
+                    $ref: '#/components/schemas/Guia'
+        '400':
+          description: Dimensiones inválidas o remitente igual a destinatario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Cliente o ruta no existe o está inactivo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/transacciones/guias/{numeroGuia}:
+    get:
+      tags:
+        - Transacciones - Guías
+      summary: Obtener información detallada de una guía por correlativo
+      operationId: getGuiaByNumero
+      parameters:
+        - name: numeroGuia
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1001
+      responses:
+        '200':
+          description: Guía encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  guia:
+                    $ref: '#/components/schemas/Guia'
+        '404':
+          description: Guía no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/transacciones/despacho:
+    get:
+      tags:
+        - Transacciones - Despacho
+      summary: Listar historial completo de despachos
+      operationId: getDespachos
+      responses:
+        '200':
+          description: Historial de despachos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  despachos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        idVehiculo:
+                          type: integer
+                          example: 1
+                        idPiloto:
+                          type: integer
+                          example: 1
+                        numeroGuia:
+                          type: integer
+                          example: 1001
+                        pesoKg:
+                          type: number
+                          example: 24.0
+                        volumenM3:
+                          type: number
+                          example: 0.12
+                        fechaDespacho:
+                          type: string
+                          example: "2026-10-09 10:15:00"
+    post:
+      tags:
+        - Transacciones - Despacho
+      summary: Procesar despacho de guías en un vehículo validando peso y volumen acumulado
+      operationId: createDespacho
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idVehiculo
+                - guias
+              properties:
+                idVehiculo:
+                  type: integer
+                  example: 1
+                idPiloto:
+                  type: integer
+                  example: 1
+                guias:
+                  type: array
+                  items:
+                    type: integer
+                  example: [1001, 1002]
+      responses:
+        '201':
+          description: Despacho realizado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Despacho realizado exitosamente y vehículo actualizado a 'En ruta'
+                  despacho:
+                    type: object
+                    properties:
+                      idVehiculo:
+                        type: integer
+                        example: 1
+                      idPiloto:
+                        type: integer
+                        example: 1
+                      totalGuias:
+                        type: integer
+                        example: 2
+                      pesoTotalKg:
+                        type: number
+                        example: 48.0
+                      volumenTotalM3:
+                        type: number
+                        example: 0.24
+                      estadoVehiculo:
+                        type: string
+                        example: En ruta
+                      guiasDespachadas:
+                        type: array
+                        items:
+                          type: integer
+                        example: [1001, 1002]
+        '400':
+          description: Exceso de capacidad vehicular, vehículo en taller o guía no disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Vehículo, piloto o guía no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/reportes/rastreo/{numeroGuia}:
+    get:
+      tags:
+        - Reportes
+      summary: Reporte de rastreo detallado de una guía de paquete
+      operationId: getReporteRastreo
+      parameters:
+        - name: numeroGuia
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1001
+      responses:
+        '200':
+          description: Información completa de rastreo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  rastreo:
+                    type: object
+                    properties:
+                      numeroGuia:
+                        type: integer
+                        example: 1001
+                      estado:
+                        type: string
+                        example: Despachada
+                      fechaEmision:
+                        type: string
+                        example: "2026-10-09 09:30:00"
+                      paquete:
+                        type: object
+                        properties:
+                          pesoRealKg:
+                            type: number
+                            example: 5.0
+                          largoCm:
+                            type: number
+                            example: 60.0
+                          anchoCm:
+                            type: number
+                            example: 50.0
+                          altoCm:
+                            type: number
+                            example: 40.0
+                          pesoVolumetricoKg:
+                            type: number
+                            example: 24.0
+                          pesoFacturableKg:
+                            type: number
+                            example: 24.0
+                          costoTotal:
+                            type: number
+                            example: 285.6
+                      remitente:
+                        $ref: '#/components/schemas/Cliente'
+                      destinatario:
+                        $ref: '#/components/schemas/Cliente'
+                      ruta:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          nombre:
+                            type: string
+                            example: Ruta Guatemala - Xela
+                          sucursalOrigen:
+                            $ref: '#/components/schemas/Sucursal'
+                          sucursalDestino:
+                            $ref: '#/components/schemas/Sucursal'
+                      despachada:
+                        type: boolean
+                        example: true
+                      despacho:
+                        type: object
+                        properties:
+                          idDespacho:
+                            type: integer
+                            example: 1
+                          fechaDespacho:
+                            type: string
+                            example: "2026-10-09 10:15:00"
+                          vehiculo:
+                            $ref: '#/components/schemas/Vehiculo'
+                          piloto:
+                            $ref: '#/components/schemas/Piloto'
+        '404':
+          description: Guía no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/reportes/manifiesto/{idVehiculo}:
+    get:
+      tags:
+        - Reportes
+      summary: Manifiesto de carga por vehículo
+      operationId: getReporteManifiesto
+      parameters:
+        - name: idVehiculo
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Manifiesto generado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  manifiesto:
+                    type: object
+                    properties:
+                      vehiculo:
+                        $ref: '#/components/schemas/Vehiculo'
+                      piloto:
+                        $ref: '#/components/schemas/Piloto'
+                      resumen:
+                        type: object
+                        properties:
+                          totalGuias:
+                            type: integer
+                            example: 2
+                          pesoTotalKg:
+                            type: number
+                            example: 48.0
+                          volumenTotalM3:
+                            type: number
+                            example: 0.24
+                      guias:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            numeroGuia:
+                              type: integer
+                              example: 1001
+                            estado:
+                              type: string
+                              example: Despachada
+                            pesoRealKg:
+                              type: number
+                              example: 5.0
+                            pesoVolumetricoKg:
+                              type: number
+                              example: 24.0
+                            pesoFacturableKg:
+                              type: number
+                              example: 24.0
+                            costoTotal:
+                              type: number
+                              example: 285.6
+        '404':
+          description: Vehículo no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/reportes/liquidacion:
+    get:
+      tags:
+        - Reportes
+      summary: Reporte consolidado de liquidación financiera y operativa
+      operationId: getReporteLiquidacion
+      responses:
+        '200':
+          description: Liquidación consolidada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  liquidacion:
+                    type: object
+                    properties:
+                      resumenFinanciero:
+                        type: object
+                        properties:
+                          totalGuiasConsideradas:
+                            type: integer
+                            example: 10
+                          totalGuiasInactivas:
+                            type: integer
+                            example: 0
+                          importeTotalFacturado:
+                            type: number
+                            example: 2450.75
+                          cobradoConfirmado:
+                            type: number
+                            example: 0.0
+                      guiasPorEstado:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            estado:
+                              type: string
+                              example: Despachada
+                            cantidadGuias:
+                              type: integer
+                              example: 6
+                            importeTotal:
+                              type: number
+                              example: 1500.00
+                      resumenPorRuta:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            idRuta:
+                              type: integer
+                              example: 1
+                            cantidadGuias:
+                              type: integer
+                              example: 5
+                            importeTotal:
+                              type: number
+                              example: 1200.00
+                      resumenPorSucursalOrigen:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            idSucursal:
+                              type: integer
+                              example: 1
+                            nombre:
+                              type: string
+                              example: Central Guatemala
+                            cantidadGuias:
+                              type: integer
+                              example: 8
+                            importeTotal:
+                              type: number
+                              example: 2000.00
+
+components:
+  schemas:
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: admin
+        nombre:
+          type: string
+          example: Administrador Principal
+        rol:
+          type: string
+          example: Administrador
+
+    SucursalInput:
+      type: object
+      required:
+        - nombre
+        - direccion
+        - telefono
+      properties:
+        nombre:
+          type: string
+          example: Sucursal Central Guatemala
+        direccion:
+          type: string
+          example: Zona 10, Ciudad de Guatemala
+        telefono:
+          type: string
+          example: 2222-0001
+
+    Sucursal:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+        - $ref: '#/components/schemas/SucursalInput'
+
+    ClienteInput:
+      type: object
+      required:
+        - nit
+        - nombre
+        - direccion
+        - telefono
+      properties:
+        nit:
+          type: string
+          example: 1234567-8
+        nombre:
+          type: string
+          example: Distribuidora El Sol, S.A.
+        direccion:
+          type: string
+          example: Calzada Roosevelt 12-45, Zona 11
+        telefono:
+          type: string
+          example: 2440-5555
+
+    Cliente:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+        - $ref: '#/components/schemas/ClienteInput'
+
+    RutaInput:
+      type: object
+      required:
+        - idSucursalOrigen
+        - idSucursalDestino
+        - distanciaKm
+        - tarifaBase
+      properties:
+        idSucursalOrigen:
+          type: integer
+          example: 1
+        idSucursalDestino:
+          type: integer
+          example: 2
+        distanciaKm:
+          type: number
+          format: float
+          example: 205.5
+        tarifaBase:
+          type: number
+          format: float
+          example: 50.0
+
+    Ruta:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+        - $ref: '#/components/schemas/RutaInput'
+
+    VehiculoInput:
+      type: object
+      required:
+        - placa
+        - marcaModelo
+        - capacidadPesoKg
+        - capacidadVolumenM3
+        - estado
+      properties:
+        placa:
+          type: string
+          example: C-123XYZ
+        marcaModelo:
+          type: string
+          example: Isuzu NPR 2024
+        capacidadPesoKg:
+          type: number
+          format: float
+          example: 3500.0
+        capacidadVolumenM3:
+          type: number
+          format: float
+          example: 18.5
+        estado:
+          type: string
+          enum: [Disponible, En ruta, En taller]
+          example: Disponible
+
+    Vehiculo:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+        - $ref: '#/components/schemas/VehiculoInput'
+
+    PilotoInput:
+      type: object
+      required:
+        - nombre
+        - licencia
+        - telefono
+      properties:
+        nombre:
+          type: string
+          example: Juan Pérez López
+        licencia:
+          type: string
+          example: LIC-987654
+        telefono:
+          type: string
+          example: 5555-4433
+
+    Piloto:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+        - $ref: '#/components/schemas/PilotoInput'
+
+    TarifaInput:
+      type: object
+      required:
+        - tipoCarga
+        - precioPorKg
+        - precioPorM3
+        - recargoEspecial
+      properties:
+        tipoCarga:
+          type: string
+          example: Estándar
+        precioPorKg:
+          type: number
+          format: float
+          example: 5.0
+        precioPorM3:
+          type: number
+          format: float
+          example: 150.0
+        recargoEspecial:
+          type: number
+          format: float
+          example: 10.0
+
+    Tarifa:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+        - $ref: '#/components/schemas/TarifaInput'
+
+    Guia:
+      type: object
+      properties:
+        numeroGuia:
+          type: integer
+          example: 1001
+        idClienteRemitente:
+          type: integer
+          example: 1
+        idClienteDestinatario:
+          type: integer
+          example: 2
+        idRuta:
+          type: integer
+          example: 1
+        pesoRealKg:
+          type: number
+          format: float
+          example: 5.0
+        largoCm:
+          type: number
+          format: float
+          example: 60.0
+        anchoCm:
+          type: number
+          format: float
+          example: 50.0
+        altoCm:
+          type: number
+          format: float
+          example: 40.0
+        pesoVolumetricoKg:
+          type: number
+          format: float
+          example: 24.0
+        pesoFacturableKg:
+          type: number
+          format: float
+          example: 24.0
+        costoTotal:
+          type: number
+          format: float
+          example: 285.6
+        estado:
+          type: string
+          enum: [Creada, Despachada, Entregada, Cancelada]
+          example: Creada
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: Descripción detallada del error
+
+    SuccessMessage:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        mensaje:
+          type: string
+          example: Operación realizada exitosamente
