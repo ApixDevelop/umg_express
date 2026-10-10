@@ -2,7 +2,8 @@
 
 **Versión:** 1.0.0  
 **Base URL:** `http://127.0.0.1:18080/v1`  
-**Formato de Intercambio:** `application/json`
+**Formato de Intercambio:** `application/json`  
+**Especificación OpenAPI 3.0:** [`openapi.yaml`](file:///Users/josue/Uni/umgExpress/openapi.yaml) / [`docs/openapi.yaml`](file:///Users/josue/Uni/umgExpress/docs/openapi.yaml)
 
 ---
 
