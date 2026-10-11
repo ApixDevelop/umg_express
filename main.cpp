@@ -95,8 +95,13 @@ int main() {
         res["mensaje"] = "Autenticación exitosa";
         res["access_token"] = sesion.token;
         res["token_type"] = "Bearer";
-        res["expires_in"] = Auth::DEFAULT_SESSION_TTL_SECONDS;
-        res["usuario"] = uJson; // Conservado para compatibilidad
+        crow::json::wvalue uJsonCompat;
+        uJsonCompat["id"] = u.id;
+        uJsonCompat["username"] = std::string(u.username);
+        uJsonCompat["nombre"] = std::string(u.nombre);
+        uJsonCompat["rol"] = std::string(u.rol);
+
+        res["usuario"] = std::move(uJsonCompat); // Conservado para compatibilidad
         res["user"] = std::move(uJson);
         return crow::response(200, res);
     });
