@@ -46,6 +46,7 @@ umgExpress/
 ├── tests/                       # Suites de pruebas unitarias e integración E2E
 │   ├── test_persistence.cpp      # Pruebas de persistencia binaria .dat
 │   ├── test_auth.cpp            # Pruebas de autenticación y roles
+│   ├── test_fase1_seguridad.cpp # Suite de pruebas de seguridad y tokens (Fase 1)
 │   ├── test_sucursales_clientes.cpp # Pruebas CRUD sucursales y clientes
 │   ├── test_rutas_vehiculos.cpp # Pruebas CRUD rutas y vehículos
 │   ├── test_pilotos_tarifas.cpp # Pruebas CRUD pilotos y tarifas
@@ -67,6 +68,7 @@ umgExpress/
 │   ├── guias.dat
 │   └── despachos.dat
 └── docs/                        # Documentación técnica del proyecto
+    ├── auditoria-backend.md     # Auditoría técnica y seguridad de autenticación (Fase 1)
     ├── arquitectura.md          # Arquitectura de software y flujo modular
     ├── estructura-dat.md        # Especificación de estructuras binarias .dat
     ├── api.md                   # Documentación completa de endpoints REST
@@ -200,10 +202,12 @@ Presione `Ctrl + C` en la terminal donde se está ejecutando el servidor.
 
 ## 6. Ejecución de la Suite de Pruebas Automatizadas
 
-El proyecto incluye 6 binarios de pruebas automatizadas que validan cada módulo y el flujo End-to-End:
+El proyecto incluye 8 binarios de pruebas automatizadas que validan cada módulo, la seguridad y el flujo End-to-End:
 
 ```bash
 # Ejecutar pruebas individuales
+./test_fase1_seguridad
+./test_auth
 ./test_calculos
 ./test_despacho
 ./test_reporte_rastreo
@@ -212,7 +216,7 @@ El proyecto incluye 6 binarios de pruebas automatizadas que validan cada módulo
 ./test_integracion_api
 
 # O ejecutar toda la suite en secuencia
-./build.sh && ./test_calculos && ./test_despacho && ./test_reporte_rastreo && ./test_reporte_manifiesto && ./test_reporte_liquidacion && ./test_integracion_api
+./build.sh && ./test_fase1_seguridad && ./test_auth && ./test_calculos && ./test_despacho && ./test_reporte_rastreo && ./test_reporte_manifiesto && ./test_reporte_liquidacion && ./test_integracion_api
 ```
 
 > **Nota sobre aislamiento de datos:** Las pruebas utilizan archivos temporales aislados (`data/test_*.dat`) que se crean y eliminan automáticamente durante cada ejecución, protegiendo en todo momento los archivos de producción en `data/`.
@@ -221,10 +225,14 @@ El proyecto incluye 6 binarios de pruebas automatizadas que validan cada módulo
 
 ## 7. Resumen de la API REST (`/v1/`)
 
-| Módulo | Método | Endpoint | Descripción |
-| :--- | :--- | :--- | :--- |
-| **Auth** | `POST` | `/v1/auth/login` | Autentica un usuario y devuelve sus datos y rol |
-| **Auth** | `POST` | `/v1/auth/usuarios` | Registra un nuevo usuario (`Administrador`, `Operador`, `Auditor`) |
+Todas las operaciones protegidas requieren el encabezado HTTP: `Authorization: Bearer <access_token>`.
+
+| Módulo | Método | Endpoint | Rol Mínimo Requerido | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| **Auth** | `POST` | `/v1/auth/login` | **Público** | Valida credenciales y emite `access_token` Bearer (vigencia 24h) |
+| **Auth** | `POST` | `/v1/auth/logout` | `Cualquier rol autenticado` | Invalida el token actual cerrando la sesión |
+| **Auth** | `GET` | `/v1/auth/me` | `Cualquier rol autenticado` | Devuelve el perfil público del usuario autenticado |
+| **Auth** | `POST` | `/v1/auth/usuarios` | `Administrador` | Registra usuario con contraseña hasheada con sal |
 | **Sucursales** | `GET` / `POST` | `/v1/sucursales` | Listar / Crear sucursal |
 | **Sucursales** | `GET` / `PUT` / `DELETE` | `/v1/sucursales/{id}` | Obtener / Actualizar / Baja lógica de sucursal |
 | **Clientes** | `GET` / `POST` | `/v1/clientes` | Listar / Crear cliente (con NIT único) |

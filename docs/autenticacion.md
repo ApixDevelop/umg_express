@@ -1,9 +1,10 @@
-# Módulo de Autenticación y Usuarios - UMG Express
+# Módulo de Autenticación, Seguridad y Autorización — UMG Express
 
 ## 1. Descripción General
 
-El módulo de Autenticación y Usuarios gestiona las credenciales, roles y acceso de los usuarios del sistema UMG Express.
-La información se almacena en el archivo binario `data/usuarios.dat` utilizando registros de tamaño constante (`struct Usuario`).
+El módulo de Autenticación y Autorización gestiona la identidad, credenciales, sesiones y permisos de acceso para los usuarios del sistema UMG Express.
+La información de los usuarios se persiste en el archivo binario `data/usuarios.dat` utilizando registros de tamaño constante (`struct Usuario`).
+Las sesiones activas se administran de forma segura en memoria mediante `Auth::SessionManager`, emitiendo tokens Bearer de alta entropía.
 
 ---
 
@@ -13,7 +14,7 @@ La información se almacena en el archivo binario `data/usuarios.dat` utilizando
 struct Usuario {
     int id;               // ID secuencial de usuario (4 bytes)
     char username[32];    // Nombre de usuario único (32 bytes)
-    char password[64];    // Contraseña (64 bytes)
+    char password[64];    // Hash con sal o contraseña protegida (64 bytes)
     char nombre[64];      // Nombre completo del usuario (64 bytes)
     char rol[20];         // Rol asignado ("Administrador", "Operador", "Auditor") (20 bytes)
     bool activo;          // Estado activo/inactivo para baja lógica (1 byte + padding)
@@ -22,73 +23,108 @@ struct Usuario {
 
 ---
 
-## 3. Roles Soportados
+## 3. Seguridad de Contraseñas y Tokens
 
-El sistema implementa tres roles definidos por las reglas de negocio:
+### 3.1 Generación de Tokens (CSPRNG)
+- Se utiliza el generador criptográficamente seguro del sistema operativo (`arc4random_buf` en macOS/BSD y `/dev/urandom` en Linux).
+- Cada token consta de 32 bytes de entropía (64 caracteres hexadecimales).
+- No se utilizan marcas de tiempo, identificadores secuenciales ni funciones pseudoaleatorias débiles.
 
-1. **`Administrador`**: Control total sobre catálogos, usuarios y operaciones.
-2. **`Operador`**: Emisión de guías, asignación de despachos y gestión de envíos.
-3. **`Auditor`**: Consulta de reportes y supervisión de manifiestos/liquidaciones.
+### 3.2 Almacenamiento de Contraseñas
+- Nuevos registros: Almacenan un hash derivado con 1,000 rondas SHA-256 y sal única por usuario (`$pbk$<hex>`).
+- Longitud del hash: 60 caracteres, encajando en `char password[64]` sin modificar el esquema binario ni el tamaño del archivo `.dat`.
+- Compatibilidad: Admite verificación de usuarios existentes en texto plano sin alterar ni sobrescribir automáticamente los archivos `.dat` de producción.
+
+### 3.3 Ciclo de Vida de las Sesiones
+- **Vigencia (TTL):** 86,400 segundos (24 horas).
+- **Revocación:** El endpoint `POST /v1/auth/logout` invalida de inmediato la sesión.
+- **Validación continua:** Cada petición protegida comprueba tanto la sesión en memoria como el estado activo del usuario en `data/usuarios.dat`.
 
 ---
 
-## 4. Endpoints HTTP
+## 4. Roles y Matriz de Permisos (RBAC)
 
-### 4.1 POST `/v1/auth/login`
+1. **`Administrador`**: Control total. Gestión de usuarios (`/v1/auth/usuarios`), creación/modificación/eliminación de catálogos, emisión de guías, despachos y reportes.
+2. **`Operador`**: Emisión y consulta de guías, asignación de despachos, creación de clientes y consulta de catálogos y manifiestos.
+3. **`Auditor`**: Supervisión y auditoría de sólo lectura en catálogos, guías, despachos y acceso completo a reportes (incluyendo liquidaciones financieras).
 
-Valida las credenciales de un usuario y comprueba su estado activo.
+---
 
-- **Solicitud**:
-  - `Content-Type: application/json`
-  - Body:
-    ```json
-    {
-      "username": "admin",
-      "password": "admin123"
-    }
-    ```
+## 5. Endpoints HTTP del Módulo
 
-- **Respuesta Exitosa (`200 OK`)**:
+### 5.1 POST `/v1/auth/login` (Público)
+Valida credenciales y emite token Bearer.
+- **Request Body:**
+  ```json
+  {
+    "username": "admin",
+    "password": "admin123"
+  }
+  ```
+- **Response `200 OK`:**
   ```json
   {
     "success": true,
     "mensaje": "Autenticación exitosa",
-    "usuario": {
+    "access_token": "48b2506b56f15393a270ef0a91f537da48b2506b56f15393a270ef0a91f537da",
+    "token_type": "Bearer",
+    "expires_in": 86400,
+    "user": {
       "id": 1,
       "username": "admin",
-      "nombre": "Administrador Inicial",
+      "nombre": "Administrador Principal",
+      "rol": "Administrador"
+    }
+  }
+  ```
+- **Response `401 Unauthorized`:**
+  ```json
+  {
+    "success": false,
+    "mensaje": "Credenciales inválidas"
+  }
+  ```
+
+### 5.2 POST `/v1/auth/logout` (Protegido)
+Invalida el token de acceso actual.
+- **Headers:** `Authorization: Bearer <token>`
+- **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "mensaje": "Sesión cerrada exitosamente"
+  }
+  ```
+
+### 5.3 GET `/v1/auth/me` (Protegido)
+Consulta el perfil público del usuario en sesión sin exponer contraseñas ni hashes.
+- **Headers:** `Authorization: Bearer <token>`
+- **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "user": {
+      "id": 1,
+      "username": "admin",
+      "nombre": "Administrador Principal",
       "rol": "Administrador"
     }
   }
   ```
 
-- **Respuesta de Error - Credenciales / Inactivo (`401 Unauthorized`)**:
+### 5.4 POST `/v1/auth/usuarios` (Protegido - Exclusivo Administrador)
+Registra un nuevo usuario en `data/usuarios.dat`.
+- **Headers:** `Authorization: Bearer <token_admin>`
+- **Request Body:**
   ```json
   {
-    "success": false,
-    "mensaje": "Credenciales inválidas (contraseña incorrecta)"
+    "username": "operador1",
+    "password": "op123password",
+    "nombre": "Carlos Gómez",
+    "rol": "Operador"
   }
   ```
-
----
-
-### 4.2 POST `/v1/auth/usuarios`
-
-Registra un nuevo usuario en el archivo binario `data/usuarios.dat`.
-
-- **Solicitud**:
-  - `Content-Type: application/json`
-  - Body:
-    ```json
-    {
-      "username": "operador1",
-      "password": "op123password",
-      "nombre": "Carlos Gómez",
-      "rol": "Operador"
-    }
-    ```
-
-- **Respuesta Exitosa (`201 Created`)**:
+- **Response `201 Created`:**
   ```json
   {
     "success": true,
@@ -101,30 +137,10 @@ Registra un nuevo usuario en el archivo binario `data/usuarios.dat`.
     }
   }
   ```
-
-- **Respuesta de Error - Username Duplicado (`409 Conflict`)**:
+- **Response `403 Forbidden` (Si el rol no es Administrador):**
   ```json
   {
     "success": false,
-    "mensaje": "El nombre de usuario 'operador1' ya existe en el sistema"
+    "mensaje": "Acceso denegado: el rol 'Operador' no cuenta con permisos suficientes para esta operación"
   }
   ```
-
-- **Respuesta de Error - Datos o Rol Inválido (`400 Bad Request`)**:
-  ```json
-  {
-    "success": false,
-    "mensaje": "Rol no válido. Debe ser: Administrador, Operador o Auditor"
-  }
-  ```
-
----
-
-## 5. Usuario Administrador por Defecto
-
-Al iniciar el servidor por primera vez (`main.cpp`), si `data/usuarios.dat` no contiene usuarios activos, se crea automáticamente un usuario administrador inicial:
-
-- **Username**: `admin`
-- **Password**: `admin123`
-- **Nombre**: `Administrador Inicial`
-- **Rol**: `Administrador`

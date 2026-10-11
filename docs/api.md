@@ -18,16 +18,27 @@ Todas las respuestas de la API devuelven una estructura JSON consistente:
 * `200 OK`: Consulta o actualización realizada exitosamente.
 * `201 Created`: Recurso o transacción creada exitosamente.
 * `400 Bad Request`: Datos de solicitud faltantes, malformados o que violan reglas de negocio (e.g. peso <= 0).
-* `401 Unauthorized`: Credenciales de autenticación inválidas o usuario inactivo.
+* `401 Unauthorized`: Token ausente, inválido, expirado, revocado o usuario inactivo.
+* `403 Forbidden`: Usuario autenticado pero con permisos insuficientes para su rol.
 * `404 Not Found`: Recurso no encontrado o inactivo por baja lógica.
 * `409 Conflict`: Intento de duplicar un campo único (e.g. NIT de cliente, licencia de piloto, username).
+
+### Esquema de Seguridad (Bearer Token)
+A excepción de los endpoints públicos (`GET /`, `GET /v1/health` y `POST /v1/auth/login`), todas las rutas protegidas requieren el encabezado:
+```http
+Authorization: Bearer <access_token>
+```
+* **Generador:** Tokens criptográficamente seguros de 256 bits (64 caracteres hexadecimales) generados mediante CSPRNG del sistema operativo (`arc4random_buf` / `/dev/urandom`).
+* **Vigencia:** 86,400 segundos (24 horas).
+* **Almacenamiento de sesiones:** En memoria (`SessionManager`), con revocación inmediata al invocar logout y reinicialización limpia al reiniciar el servidor.
 
 ---
 
 ## 2. Autenticación y Usuarios (`/v1/auth`)
 
 ### 2.1 Autenticación de Usuario (`POST /v1/auth/login`)
-Valida las credenciales de un usuario y devuelve su información de perfil.
+* **Acceso:** Público (Sin token requerido).  
+* Valida credenciales contra `data/usuarios.dat` y genera una sesión activa.
 
 - **Request Body:**
   ```json
@@ -41,7 +52,10 @@ Valida las credenciales de un usuario y devuelve su información de perfil.
   {
     "success": true,
     "mensaje": "Autenticación exitosa",
-    "usuario": {
+    "access_token": "48b2506b56f15393a270ef0a91f537da48b2506b56f15393a270ef0a91f537da",
+    "token_type": "Bearer",
+    "expires_in": 86400,
+    "user": {
       "id": 1,
       "username": "admin",
       "nombre": "Administrador Principal",
@@ -53,13 +67,53 @@ Valida las credenciales de un usuario y devuelve su información de perfil.
   ```json
   {
     "success": false,
-    "error": "Credenciales inválidas o usuario inactivo"
+    "mensaje": "Credenciales inválidas"
   }
   ```
 
-### 2.2 Registro de Usuario (`POST /v1/auth/usuarios`)
-Crea una nueva cuenta de usuario en `data/usuarios.dat`.
+### 2.2 Cierre de Sesión (`POST /v1/auth/logout`)
+* **Acceso:** Protegido (`Administrador`, `Operador`, `Auditor`).  
+* Invalida inmediatamente el token actual impidiendo su uso posterior.
 
+- **Headers:** `Authorization: Bearer <token>`
+- **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "mensaje": "Sesión cerrada exitosamente"
+  }
+  ```
+- **Response `401 Unauthorized`:**
+  ```json
+  {
+    "success": false,
+    "mensaje": "Token de autenticación no proporcionado (se requiere Authorization: Bearer <token>)"
+  }
+  ```
+
+### 2.3 Perfil de Usuario Actual (`GET /v1/auth/me`)
+* **Acceso:** Protegido (`Administrador`, `Operador`, `Auditor`).  
+* Devuelve la información pública del usuario vinculado al token de acceso sin exponer contraseñas ni hashes.
+
+- **Headers:** `Authorization: Bearer <token>`
+- **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "user": {
+      "id": 1,
+      "username": "admin",
+      "nombre": "Administrador Principal",
+      "rol": "Administrador"
+    }
+  }
+  ```
+
+### 2.4 Registro de Usuario (`POST /v1/auth/usuarios`)
+* **Acceso:** Protegido — **Exclusivo para rol `Administrador`**.  
+* Crea una nueva cuenta con contraseña protegida mediante hash con sal (`$pbk$`).
+
+- **Headers:** `Authorization: Bearer <token_admin>`
 - **Request Body:**
   ```json
   {
@@ -80,6 +134,13 @@ Crea una nueva cuenta de usuario en `data/usuarios.dat`.
       "nombre": "Carlos Gómez",
       "rol": "Operador"
     }
+  }
+  ```
+- **Response `403 Forbidden` (Si no es Administrador):**
+  ```json
+  {
+    "success": false,
+    "mensaje": "Acceso denegado: el rol 'Operador' no cuenta con permisos suficientes para esta operación"
   }
   ```
 
