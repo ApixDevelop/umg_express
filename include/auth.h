@@ -398,8 +398,7 @@ inline bool autenticarUsuario(const char* filepath,
     fclose(f);
 
     if (!encontrado) {
-        // Mensaje genérico para no filtrar existencia de cuentas
-        errorMsg = "Credenciales inválidas";
+        errorMsg = "Credenciales inválidas (usuario no encontrado)";
         return false;
     }
 
