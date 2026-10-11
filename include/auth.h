@@ -232,9 +232,22 @@ public:
         }
 
         // Verificar vigencia real del usuario en el archivo binario
+        FILE* fUser = fopen(filepathUsuarios, "rb");
+        if (!fUser) {
+            errorMsg = "No se pudo verificar el archivo de usuarios";
+            return false;
+        }
         Usuario uPersistente;
-        long idxDummy = 0;
-        if (!Persistence::buscarPorId<Usuario>(filepathUsuarios, s.usuarioId, uPersistente, idxDummy)) {
+        bool encontrado = false;
+        while (fread(&uPersistente, sizeof(Usuario), 1, fUser) == 1) {
+            if (uPersistente.id == s.usuarioId) {
+                encontrado = true;
+                break;
+            }
+        }
+        fclose(fUser);
+
+        if (!encontrado) {
             errorMsg = "Usuario asociado al token no encontrado en el sistema";
             return false;
         }
