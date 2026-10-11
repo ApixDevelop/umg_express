@@ -82,6 +82,9 @@ int main() {
             return crow::response(401, res);
         }
 
+        // Generar sesión en memoria y token Bearer criptográficamente seguro
+        Auth::Sesion sesion = Auth::SessionManager::getInstance().crearSesion(u);
+
         crow::json::wvalue uJson;
         uJson["id"] = u.id;
         uJson["username"] = std::string(u.username);
@@ -90,11 +93,65 @@ int main() {
 
         res["success"] = true;
         res["mensaje"] = "Autenticación exitosa";
-        res["usuario"] = std::move(uJson);
+        res["access_token"] = sesion.token;
+        res["token_type"] = "Bearer";
+        crow::json::wvalue uJsonCompat;
+        uJsonCompat["id"] = u.id;
+        uJsonCompat["username"] = std::string(u.username);
+        uJsonCompat["nombre"] = std::string(u.nombre);
+        uJsonCompat["rol"] = std::string(u.rol);
+
+        res["usuario"] = std::move(uJsonCompat); // Conservado para compatibilidad
+        res["user"] = std::move(uJson);
+        return crow::response(200, res);
+    });
+
+    CROW_ROUTE(app, "/v1/auth/logout").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        crow::json::wvalue res;
+        std::string token = Auth::extraerBearerToken(req);
+        if (token.empty()) {
+            res["success"] = false;
+            res["mensaje"] = "Token de autenticación no proporcionado (se requiere Authorization: Bearer <token>)";
+            return crow::response(401, res);
+        }
+        std::string err;
+        if (!Auth::SessionManager::getInstance().revocarToken(token, err)) {
+            res["success"] = false;
+            res["mensaje"] = "Token inválido o inexistente";
+            return crow::response(401, res);
+        }
+        res["success"] = true;
+        res["mensaje"] = "Sesión cerrada exitosamente";
+        return crow::response(200, res);
+    });
+
+    CROW_ROUTE(app, "/v1/auth/me").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        crow::json::wvalue res;
+        auto authRes = Auth::validarAcceso(req, {});
+        if (!authRes.autorizado) {
+            res["success"] = false;
+            res["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, res);
+        }
+        crow::json::wvalue uJson;
+        uJson["id"] = authRes.usuario.id;
+        uJson["username"] = std::string(authRes.usuario.username);
+        uJson["nombre"] = std::string(authRes.usuario.nombre);
+        uJson["rol"] = std::string(authRes.usuario.rol);
+
+        res["success"] = true;
+        res["user"] = std::move(uJson);
         return crow::response(200, res);
     });
 
     CROW_ROUTE(app, "/v1/auth/usuarios").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("username") || !body.has("password") || !body.has("nombre") || !body.has("rol")) {
@@ -127,7 +184,14 @@ int main() {
     // -------------------------------------------------------------------------
     // MÓDULO: SUCURSALES (/v1/sucursales)
     // -------------------------------------------------------------------------
-    CROW_ROUTE(app, "/v1/sucursales").methods(crow::HTTPMethod::GET)([]() {
+    CROW_ROUTE(app, "/v1/sucursales").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         std::vector<Sucursal> lista = Sucursales::listarSucursales(Sucursales::DEFAULT_FILE_SUCURSALES);
         crow::json::wvalue::list jsonList;
         for (const auto& s : lista) {
@@ -144,7 +208,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/sucursales/<int>").methods(crow::HTTPMethod::GET)([](int id) {
+    CROW_ROUTE(app, "/v1/sucursales/<int>").methods(crow::HTTPMethod::GET)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         Sucursal s;
         crow::json::wvalue res;
         if (!Sucursales::obtenerSucursalPorId(Sucursales::DEFAULT_FILE_SUCURSALES, id, s)) {
@@ -164,6 +235,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/sucursales").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("nombre") || !body.has("direccion") || !body.has("telefono")) {
@@ -194,6 +272,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/sucursales/<int>").methods(crow::HTTPMethod::PUT)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("nombre") || !body.has("direccion") || !body.has("telefono")) {
@@ -224,7 +309,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/sucursales/<int>").methods(crow::HTTPMethod::DELETE)([](int id) {
+    CROW_ROUTE(app, "/v1/sucursales/<int>").methods(crow::HTTPMethod::DELETE)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         std::string errorMsg;
         if (!Sucursales::eliminarSucursal(Sucursales::DEFAULT_FILE_SUCURSALES, id, errorMsg)) {
@@ -241,7 +333,14 @@ int main() {
     // -------------------------------------------------------------------------
     // MÓDULO: CLIENTES (/v1/clientes)
     // -------------------------------------------------------------------------
-    CROW_ROUTE(app, "/v1/clientes").methods(crow::HTTPMethod::GET)([]() {
+    CROW_ROUTE(app, "/v1/clientes").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         std::vector<Cliente> lista = Clientes::listarClientes(Clientes::DEFAULT_FILE_CLIENTES);
         crow::json::wvalue::list jsonList;
         for (const auto& c : lista) {
@@ -259,7 +358,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/clientes/<int>").methods(crow::HTTPMethod::GET)([](int id) {
+    CROW_ROUTE(app, "/v1/clientes/<int>").methods(crow::HTTPMethod::GET)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         Cliente c;
         crow::json::wvalue res;
         if (!Clientes::obtenerClientePorId(Clientes::DEFAULT_FILE_CLIENTES, id, c)) {
@@ -280,6 +386,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/clientes").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("nit") || !body.has("nombre") || !body.has("direccion") || !body.has("telefono")) {
@@ -311,6 +424,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/clientes/<int>").methods(crow::HTTPMethod::PUT)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("nit") || !body.has("nombre") || !body.has("direccion") || !body.has("telefono")) {
@@ -342,7 +462,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/clientes/<int>").methods(crow::HTTPMethod::DELETE)([](int id) {
+    CROW_ROUTE(app, "/v1/clientes/<int>").methods(crow::HTTPMethod::DELETE)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         std::string errorMsg;
         if (!Clientes::eliminarCliente(Clientes::DEFAULT_FILE_CLIENTES, id, errorMsg)) {
@@ -359,7 +486,14 @@ int main() {
     // -------------------------------------------------------------------------
     // MÓDULO: RUTAS (/v1/rutas)
     // -------------------------------------------------------------------------
-    CROW_ROUTE(app, "/v1/rutas").methods(crow::HTTPMethod::GET)([]() {
+    CROW_ROUTE(app, "/v1/rutas").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         std::vector<Ruta> lista = Rutas::listarRutas(Rutas::DEFAULT_FILE_RUTAS);
         crow::json::wvalue::list jsonList;
         for (const auto& r : lista) {
@@ -377,7 +511,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/rutas/<int>").methods(crow::HTTPMethod::GET)([](int id) {
+    CROW_ROUTE(app, "/v1/rutas/<int>").methods(crow::HTTPMethod::GET)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         Ruta r;
         crow::json::wvalue res;
         if (!Rutas::obtenerRutaPorId(Rutas::DEFAULT_FILE_RUTAS, id, r)) {
@@ -398,6 +539,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/rutas").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("idSucursalOrigen") || !body.has("idSucursalDestino") || !body.has("distanciaKm") || !body.has("tarifaBase")) {
@@ -435,6 +583,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/rutas/<int>").methods(crow::HTTPMethod::PUT)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("idSucursalOrigen") || !body.has("idSucursalDestino") || !body.has("distanciaKm") || !body.has("tarifaBase")) {
@@ -471,7 +626,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/rutas/<int>").methods(crow::HTTPMethod::DELETE)([](int id) {
+    CROW_ROUTE(app, "/v1/rutas/<int>").methods(crow::HTTPMethod::DELETE)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         std::string errorMsg;
         if (!Rutas::eliminarRuta(Rutas::DEFAULT_FILE_RUTAS, id, errorMsg)) {
@@ -488,7 +650,14 @@ int main() {
     // -------------------------------------------------------------------------
     // MÓDULO: VEHÍCULOS (/v1/vehiculos)
     // -------------------------------------------------------------------------
-    CROW_ROUTE(app, "/v1/vehiculos").methods(crow::HTTPMethod::GET)([]() {
+    CROW_ROUTE(app, "/v1/vehiculos").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         std::vector<Vehiculo> lista = Vehiculos::listarVehiculos(Vehiculos::DEFAULT_FILE_VEHICULOS);
         crow::json::wvalue::list jsonList;
         for (const auto& v : lista) {
@@ -507,7 +676,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/vehiculos/<int>").methods(crow::HTTPMethod::GET)([](int id) {
+    CROW_ROUTE(app, "/v1/vehiculos/<int>").methods(crow::HTTPMethod::GET)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         Vehiculo v;
         crow::json::wvalue res;
         if (!Vehiculos::obtenerVehiculoPorId(Vehiculos::DEFAULT_FILE_VEHICULOS, id, v)) {
@@ -529,6 +705,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/vehiculos").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("placa") || !body.has("marcaModelo") || !body.has("capacidadPesoKg") || !body.has("capacidadVolumenM3") || !body.has("estado")) {
@@ -561,6 +744,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/vehiculos/<int>").methods(crow::HTTPMethod::PUT)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("placa") || !body.has("marcaModelo") || !body.has("capacidadPesoKg") || !body.has("capacidadVolumenM3") || !body.has("estado")) {
@@ -593,7 +783,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/vehiculos/<int>").methods(crow::HTTPMethod::DELETE)([](int id) {
+    CROW_ROUTE(app, "/v1/vehiculos/<int>").methods(crow::HTTPMethod::DELETE)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         std::string errorMsg;
         if (!Vehiculos::eliminarVehiculo(Vehiculos::DEFAULT_FILE_VEHICULOS, id, errorMsg)) {
@@ -610,7 +807,14 @@ int main() {
     // -------------------------------------------------------------------------
     // MÓDULO: PILOTOS (/v1/pilotos)
     // -------------------------------------------------------------------------
-    CROW_ROUTE(app, "/v1/pilotos").methods(crow::HTTPMethod::GET)([]() {
+    CROW_ROUTE(app, "/v1/pilotos").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         std::vector<Piloto> lista = Pilotos::listarPilotos(Pilotos::DEFAULT_FILE_PILOTOS);
         crow::json::wvalue::list jsonList;
         for (const auto& p : lista) {
@@ -627,7 +831,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/pilotos/<int>").methods(crow::HTTPMethod::GET)([](int id) {
+    CROW_ROUTE(app, "/v1/pilotos/<int>").methods(crow::HTTPMethod::GET)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         Piloto p;
         crow::json::wvalue res;
         if (!Pilotos::obtenerPilotoPorId(Pilotos::DEFAULT_FILE_PILOTOS, id, p)) {
@@ -647,6 +858,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/pilotos").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("nombre") || !body.has("licencia") || !body.has("telefono")) {
@@ -677,6 +895,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/pilotos/<int>").methods(crow::HTTPMethod::PUT)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("nombre") || !body.has("licencia") || !body.has("telefono")) {
@@ -707,7 +932,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/pilotos/<int>").methods(crow::HTTPMethod::DELETE)([](int id) {
+    CROW_ROUTE(app, "/v1/pilotos/<int>").methods(crow::HTTPMethod::DELETE)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         std::string errorMsg;
         if (!Pilotos::eliminarPiloto(Pilotos::DEFAULT_FILE_PILOTOS, id, errorMsg)) {
@@ -724,7 +956,14 @@ int main() {
     // -------------------------------------------------------------------------
     // MÓDULO: TARIFAS (/v1/tarifas)
     // -------------------------------------------------------------------------
-    CROW_ROUTE(app, "/v1/tarifas").methods(crow::HTTPMethod::GET)([]() {
+    CROW_ROUTE(app, "/v1/tarifas").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         std::vector<Tarifa> lista = Tarifas::listarTarifas(Tarifas::DEFAULT_FILE_TARIFAS);
         crow::json::wvalue::list jsonList;
         for (const auto& t : lista) {
@@ -742,7 +981,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/tarifas/<int>").methods(crow::HTTPMethod::GET)([](int id) {
+    CROW_ROUTE(app, "/v1/tarifas/<int>").methods(crow::HTTPMethod::GET)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         Tarifa t;
         crow::json::wvalue res;
         if (!Tarifas::obtenerTarifaPorId(Tarifas::DEFAULT_FILE_TARIFAS, id, t)) {
@@ -763,6 +1009,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/tarifas").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("tipoCarga") || !body.has("precioPorKg") || !body.has("precioPorM3") || !body.has("recargoEspecial")) {
@@ -794,6 +1047,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/tarifas/<int>").methods(crow::HTTPMethod::PUT)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("tipoCarga") || !body.has("precioPorKg") || !body.has("precioPorM3") || !body.has("recargoEspecial")) {
@@ -825,7 +1085,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/tarifas/<int>").methods(crow::HTTPMethod::DELETE)([](int id) {
+    CROW_ROUTE(app, "/v1/tarifas/<int>").methods(crow::HTTPMethod::DELETE)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         std::string errorMsg;
         if (!Tarifas::eliminarTarifa(Tarifas::DEFAULT_FILE_TARIFAS, id, errorMsg)) {
@@ -842,7 +1109,14 @@ int main() {
     // -------------------------------------------------------------------------
     // MÓDULO: TRANSACCIONES / GUÍAS (/v1/transacciones/guias)
     // -------------------------------------------------------------------------
-    CROW_ROUTE(app, "/v1/transacciones/guias").methods(crow::HTTPMethod::GET)([]() {
+    CROW_ROUTE(app, "/v1/transacciones/guias").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         std::vector<Guia> lista = Guias::listarGuias(Guias::DEFAULT_FILE_GUIAS);
         crow::json::wvalue::list jsonList;
         for (const auto& g : lista) {
@@ -867,7 +1141,14 @@ int main() {
         return crow::response(200, res);
     });
 
-    CROW_ROUTE(app, "/v1/transacciones/guias/<int>").methods(crow::HTTPMethod::GET)([](int numeroGuia) {
+    CROW_ROUTE(app, "/v1/transacciones/guias/<int>").methods(crow::HTTPMethod::GET)([](const crow::request& req, int numeroGuia) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         Guia g;
         crow::json::wvalue res;
         if (!Guias::obtenerGuiaPorNumero(Guias::DEFAULT_FILE_GUIAS, numeroGuia, g)) {
@@ -895,6 +1176,13 @@ int main() {
     });
 
     CROW_ROUTE(app, "/v1/transacciones/guias").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("idClienteRemitente") || !body.has("idClienteDestinatario") || !body.has("idRuta") || !body.has("pesoRealKg") || !body.has("largoCm") || !body.has("anchoCm") || !body.has("altoCm")) {
@@ -947,6 +1235,13 @@ int main() {
     // MÓDULO: TRANSACCIONES / DESPACHO (/v1/transacciones/despacho)
     // -------------------------------------------------------------------------
     CROW_ROUTE(app, "/v1/transacciones/despacho").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         auto body = crow::json::load(req.body);
         if (!body || !body.has("idVehiculo")) {
@@ -1010,7 +1305,14 @@ int main() {
         return crow::response(201, res);
     });
 
-    CROW_ROUTE(app, "/v1/transacciones/despacho").methods(crow::HTTPMethod::GET)([]() {
+    CROW_ROUTE(app, "/v1/transacciones/despacho").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         std::vector<Despacho> lista = Despachos::listarDespachos(Despachos::DEFAULT_FILE_DESPACHOS);
         crow::json::wvalue::list jsonList;
         for (const auto& d : lista) {
@@ -1033,7 +1335,14 @@ int main() {
     // -------------------------------------------------------------------------
     // MÓDULO: REPORTES / RASTREO DE GUÍAS (/v1/reportes/rastreo/{numeroGuia})
     // -------------------------------------------------------------------------
-    CROW_ROUTE(app, "/v1/reportes/rastreo/<int>").methods(crow::HTTPMethod::GET)([](int numeroGuia) {
+    CROW_ROUTE(app, "/v1/reportes/rastreo/<int>").methods(crow::HTTPMethod::GET)([](const crow::request& req, int numeroGuia) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         Reportes::DatosRastreoGuia datos;
         std::string errorMsg;
@@ -1150,7 +1459,14 @@ int main() {
     // -------------------------------------------------------------------------
     // MÓDULO: REPORTES - MANIFIESTO DE VEHÍCULO (Fase 6B)
     // -------------------------------------------------------------------------
-    CROW_ROUTE(app, "/v1/reportes/manifiesto/<int>").methods(crow::HTTPMethod::GET)([](int idVehiculo) {
+    CROW_ROUTE(app, "/v1/reportes/manifiesto/<int>").methods(crow::HTTPMethod::GET)([](const crow::request& req, int idVehiculo) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         Reportes::DatosManifiestoVehiculo datos;
         std::string errorMsg;
@@ -1260,7 +1576,14 @@ int main() {
     // -------------------------------------------------------------------------
     // MÓDULO: REPORTES - LIQUIDACIÓN (Fase 6C)
     // -------------------------------------------------------------------------
-    CROW_ROUTE(app, "/v1/reportes/liquidacion").methods(crow::HTTPMethod::GET)([]() {
+    CROW_ROUTE(app, "/v1/reportes/liquidacion").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Auditor"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
         crow::json::wvalue res;
         Reportes::DatosLiquidacion datos;
         std::string errorMsg;

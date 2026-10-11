@@ -170,6 +170,30 @@
 | **Fase 7** | Integración y revisión general de la API | **Completada** |
 | **Fase 8** | Pruebas y estabilización | **Completada** |
 | **Fase 9** | Documentación y revisión final | **Completada** |
+| **Fase 1 (Seguridad)** | Corrección de autenticación, tokens Bearer y control de acceso RBAC | **Completada** |
+
+---
+
+## 3. Bitácora de Corrección — Fase 1 (Autenticación y Seguridad mediante Tokens)
+
+- **Estado**: COMPLETADA
+- **Trabajo Realizado**:
+  - Implementación de generador CSPRNG de 256 bits (`arc4random_buf` / `/dev/urandom`) generando tokens de 64 caracteres hexadecimales.
+  - Almacén de sesiones en memoria con concurrencia segura (`std::mutex`), TTL de 86,400s (24h) y revocación inmediata.
+  - Endpoints de autenticación actualizados y creados:
+    - `POST /v1/auth/login`: emite `access_token`, `token_type: "Bearer"`, `expires_in` y objeto `user`.
+    - `POST /v1/auth/logout`: revoca la sesión y su token.
+    - `GET /v1/auth/me`: consulta el perfil autenticado.
+    - `POST /v1/auth/usuarios`: protegido exclusivamente para rol `Administrador`.
+  - Protección de 38 endpoints de catálogos, guías, despachos y reportes con matriz RBAC (`401 Unauthorized` / `403 Forbidden`).
+  - Almacenamiento de contraseñas con estiramiento de clave y sal (`$pbk$`) garantizando compatibilidad con los datos preexistentes en `data/usuarios.dat`.
+  - Decisión técnica sobre CORS: se delega la gestión de orígenes al proxy del frontend React sin agregar encabezados innecesarios en el backend.
+  - Suite de pruebas de seguridad automatizada en `tests/test_fase1_seguridad.cpp` verificando las 10 condiciones obligatorias.
+- **Pruebas Realizadas**:
+  - 10 pruebas obligatorias ejecutadas en `tests/test_fase1_seguridad.cpp` con datos aislados.
+  - Suite completa de 8 ejecutables compilada y ejecutada al 100% exitosamente (`./build.sh`).
+- **Problemas Pendientes**:
+  - Ninguno. Listo para autorización de la siguiente fase.
 
 
 
