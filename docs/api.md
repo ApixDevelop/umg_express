@@ -311,6 +311,42 @@ Aplica automáticamente la fórmula de peso volumétrico $\frac{L \times W \time
   }
   ```
 
+### 9.2 Actualizar Estado de Guía (`PUT /v1/transacciones/guias/{numeroGuia}`)
+* **Roles:** `Administrador`, `Operador`.
+* **Request Body:**
+  ```json
+  {
+    "estado": "Entregada"
+  }
+  ```
+* **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "mensaje": "Estado de guía actualizado exitosamente a 'Entregada'",
+    "guia": {
+      "numeroGuia": 1001,
+      "estado": "Entregada",
+      ...
+    }
+  }
+  ```
+
+### 9.3 Marcar Guía como Entregada Directamente (`POST /v1/transacciones/guias/{numeroGuia}/entregar`)
+* **Roles:** `Administrador`, `Operador`.
+* **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "mensaje": "Guía marcada como entregada exitosamente",
+    "guia": {
+      "numeroGuia": 1001,
+      "estado": "Entregada",
+      ...
+    }
+  }
+  ```
+
 ---
 
 ## 10. Transacciones: Despacho de Carga (`/v1/transacciones/despacho`)
