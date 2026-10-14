@@ -1,0 +1,15 @@
+.git
+.gitignore
+.gemini
+.agents
+*.md
+docs/
+scratch/
+tests/
+test_*
+server
+build.sh
+*.o
+*.a
+*.so
+*.log
