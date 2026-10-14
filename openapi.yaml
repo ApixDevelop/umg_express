@@ -1875,6 +1875,50 @@ components:
           type: string
           example: Administrador
 
+    UsuarioInput:
+      type: object
+      required:
+        - username
+        - password
+        - nombre
+        - rol
+      properties:
+        username:
+          type: string
+          example: operador1
+        password:
+          type: string
+          example: pass123
+        nombre:
+          type: string
+          example: Carlos Gómez
+        rol:
+          type: string
+          enum: [Administrador, Operador, Auditor]
+          example: Operador
+
+    UsuarioUpdateInput:
+      type: object
+      required:
+        - username
+        - nombre
+        - rol
+      properties:
+        username:
+          type: string
+          example: operador1
+        password:
+          type: string
+          description: Opcional. Si se envía vacío o se omite, se conserva la contraseña existente.
+          example: nuevaPass456
+        nombre:
+          type: string
+          example: Carlos Gómez Actualizado
+        rol:
+          type: string
+          enum: [Administrador, Operador, Auditor]
+          example: Operador
+
     SucursalInput:
       type: object
       required:
