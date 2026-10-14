@@ -181,6 +181,122 @@ int main() {
         return crow::response(201, res);
     });
 
+    // Listar todos los usuarios del sistema (solo rol Administrador)
+    CROW_ROUTE(app, "/v1/auth/usuarios").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
+        std::vector<Usuario> lista = Auth::listarUsuarios(Auth::DEFAULT_FILE_USUARIOS);
+        crow::json::wvalue::list jsonList;
+        for (const auto& u : lista) {
+            crow::json::wvalue item;
+            item["id"] = u.id;
+            item["username"] = std::string(u.username);
+            item["nombre"] = std::string(u.nombre);
+            item["rol"] = std::string(u.rol);
+            jsonList.push_back(std::move(item));
+        }
+        crow::json::wvalue res;
+        res["success"] = true;
+        res["usuarios"] = std::move(jsonList);
+        return crow::response(200, res);
+    });
+
+    // Obtener un usuario por su ID (solo rol Administrador)
+    CROW_ROUTE(app, "/v1/auth/usuarios/<int>").methods(crow::HTTPMethod::GET)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
+        Usuario u;
+        crow::json::wvalue res;
+        if (!Auth::obtenerUsuarioPorId(Auth::DEFAULT_FILE_USUARIOS, id, u)) {
+            res["success"] = false;
+            res["mensaje"] = "Usuario con ID " + std::to_string(id) + " no encontrado o inactivo";
+            return crow::response(404, res);
+        }
+        crow::json::wvalue uJson;
+        uJson["id"] = u.id;
+        uJson["username"] = std::string(u.username);
+        uJson["nombre"] = std::string(u.nombre);
+        uJson["rol"] = std::string(u.rol);
+
+        res["success"] = true;
+        res["usuario"] = std::move(uJson);
+        return crow::response(200, res);
+    });
+
+    // Actualizar un usuario por su ID (solo rol Administrador)
+    CROW_ROUTE(app, "/v1/auth/usuarios/<int>").methods(crow::HTTPMethod::PUT)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
+        crow::json::wvalue res;
+        auto body = crow::json::load(req.body);
+        if (!body || !body.has("username") || !body.has("nombre") || !body.has("rol")) {
+            res["success"] = false;
+            res["mensaje"] = "Se requieren los campos: username, nombre, rol";
+            return crow::response(400, res);
+        }
+
+        std::string password = body.has("password") ? std::string(body["password"].s()) : "";
+        Usuario uAct;
+        std::string errorMsg;
+        if (!Auth::actualizarUsuario(Auth::DEFAULT_FILE_USUARIOS, id, body["username"].s(), password, body["nombre"].s(), body["rol"].s(), uAct, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            int code = 400;
+            if (errorMsg.find("no encontrado") != std::string::npos) code = 404;
+            else if (errorMsg.find("ya existe") != std::string::npos) code = 409;
+            return crow::response(code, res);
+        }
+
+        crow::json::wvalue uJson;
+        uJson["id"] = uAct.id;
+        uJson["username"] = std::string(uAct.username);
+        uJson["nombre"] = std::string(uAct.nombre);
+        uJson["rol"] = std::string(uAct.rol);
+
+        res["success"] = true;
+        res["mensaje"] = "Usuario actualizado exitosamente";
+        res["usuario"] = std::move(uJson);
+        return crow::response(200, res);
+    });
+
+    // Baja lógica de un usuario por su ID (solo rol Administrador)
+    CROW_ROUTE(app, "/v1/auth/usuarios/<int>").methods(crow::HTTPMethod::DELETE)([](const crow::request& req, int id) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
+        crow::json::wvalue res;
+        std::string errorMsg;
+        if (!Auth::eliminarUsuario(Auth::DEFAULT_FILE_USUARIOS, id, authRes.usuario.id, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            int code = (errorMsg.find("no encontrado") != std::string::npos) ? 404 : 400;
+            return crow::response(code, res);
+        }
+
+        res["success"] = true;
+        res["mensaje"] = "Usuario eliminado exitosamente";
+        return crow::response(200, res);
+    });
+
     // -------------------------------------------------------------------------
     // MÓDULO: SUCURSALES (/v1/sucursales)
     // -------------------------------------------------------------------------

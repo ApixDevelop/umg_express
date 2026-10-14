@@ -323,10 +323,124 @@ inline bool buscarPorUsername(const char* filepath, const std::string& username,
     return false;
 }
 
-inline bool existeUsername(const char* filepath, const std::string& username) {
+// Obtiene la lista de todos los usuarios activos
+inline std::vector<Usuario> listarUsuarios(const char* filepath = DEFAULT_FILE_USUARIOS) {
+    return Persistence::leerTodos<Usuario>(filepath, true);
+}
+
+// Obtiene un usuario activo por su ID
+inline bool obtenerUsuarioPorId(const char* filepath, int id, Usuario& outUsuario) {
+    long index = -1;
+    return Persistence::buscarPorId<Usuario>(filepath, id, outUsuario, index);
+}
+
+// Comprueba si un username ya existe (activo), opcionalmente excluyendo un ID específico
+inline bool existeUsername(const char* filepath, const std::string& username, int idExcluir = -1) {
+    FILE* f = fopen(filepath, "rb");
+    if (!f) return false;
+
     Usuario u;
-    long idx = -1;
-    return buscarPorUsername(filepath, username, u, idx);
+    while (fread(&u, sizeof(Usuario), 1, f) == 1) {
+        if (u.activo && (idExcluir == -1 || u.id != idExcluir) && username == u.username) {
+            fclose(f);
+            return true;
+        }
+    }
+    fclose(f);
+    return false;
+}
+
+// Actualiza los datos de un usuario existente
+inline bool actualizarUsuario(const char* filepath,
+                              int id,
+                              const std::string& username,
+                              const std::string& password,
+                              const std::string& nombre,
+                              const std::string& rol,
+                              Usuario& outUsuario,
+                              std::string& errorMsg) {
+    Usuario actual;
+    if (!obtenerUsuarioPorId(filepath, id, actual)) {
+        errorMsg = "Usuario con ID " + std::to_string(id) + " no encontrado o inactivo";
+        return false;
+    }
+
+    if (username.empty() || nombre.empty() || rol.empty()) {
+        errorMsg = "Los campos username, nombre y rol son obligatorios";
+        return false;
+    }
+    if (username.size() >= 32) {
+        errorMsg = "El nombre de usuario excede el límite de 31 caracteres";
+        return false;
+    }
+    if (nombre.size() >= 64) {
+        errorMsg = "El nombre excede el límite de 63 caracteres";
+        return false;
+    }
+    if (!esRolValido(rol)) {
+        errorMsg = "Rol no válido. Debe ser: Administrador, Operador o Auditor";
+        return false;
+    }
+    if (existeUsername(filepath, username, id)) {
+        errorMsg = "El nombre de usuario '" + username + "' ya existe en el sistema";
+        return false;
+    }
+
+    if (id == 1 && rol != "Administrador") {
+        errorMsg = "El usuario administrador principal no puede perder el rol Administrador";
+        return false;
+    }
+
+    std::memset(actual.username, 0, sizeof(actual.username));
+    std::memset(actual.nombre, 0, sizeof(actual.nombre));
+    std::memset(actual.rol, 0, sizeof(actual.rol));
+
+    std::strncpy(actual.username, username.c_str(), sizeof(actual.username) - 1);
+    std::strncpy(actual.nombre, nombre.c_str(), sizeof(actual.nombre) - 1);
+    std::strncpy(actual.rol, rol.c_str(), sizeof(actual.rol) - 1);
+
+    if (!password.empty()) {
+        if (password.size() >= 64) {
+            errorMsg = "La contraseña excede el límite de 63 caracteres";
+            return false;
+        }
+        std::string passHash = hashearPassword(password, username);
+        std::memset(actual.password, 0, sizeof(actual.password));
+        std::strncpy(actual.password, passHash.c_str(), sizeof(actual.password) - 1);
+    }
+
+    if (!Persistence::actualizarPorId<Usuario>(filepath, id, actual)) {
+        errorMsg = "Error al actualizar el usuario en el archivo binario";
+        return false;
+    }
+
+    outUsuario = actual;
+    return true;
+}
+
+// Realiza la baja lógica (activo = false) de un usuario
+inline bool eliminarUsuario(const char* filepath, int id, int idUsuarioSesion, std::string& errorMsg) {
+    if (id == 1) {
+        errorMsg = "No se puede eliminar al usuario administrador principal del sistema";
+        return false;
+    }
+    if (id == idUsuarioSesion) {
+        errorMsg = "No puede eliminar su propia cuenta de usuario en sesión";
+        return false;
+    }
+
+    Usuario actual;
+    if (!obtenerUsuarioPorId(filepath, id, actual)) {
+        errorMsg = "Usuario con ID " + std::to_string(id) + " no encontrado o ya inactivo";
+        return false;
+    }
+
+    if (!Persistence::eliminarLogico<Usuario>(filepath, id)) {
+        errorMsg = "Error al realizar la baja lógica del usuario en disco";
+        return false;
+    }
+
+    return true;
 }
 
 inline bool registrarUsuario(const char* filepath,
