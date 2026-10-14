@@ -136,8 +136,10 @@ void probarActualizarYEliminarUsuario() {
     assert(!okDup);
     assert(err.find("ya existe") != std::string::npos);
 
-    // 6. Eliminar usuario no permitido (admin id 1)
-    bool okDelAdmin = Auth::eliminarUsuario(FILE_USUARIOS_AUTH_TEST, 1, 2, err);
+    // 6. Registrar usuario admin y verificar que no se puede eliminar
+    Usuario uAdmin;
+    Auth::registrarUsuario(FILE_USUARIOS_AUTH_TEST, "admin", "adminPass", "Admin Principal", "Administrador", uAdmin, err);
+    bool okDelAdmin = Auth::eliminarUsuario(FILE_USUARIOS_AUTH_TEST, uAdmin.id, 2, err);
     assert(!okDelAdmin);
     assert(err.find("administrador principal") != std::string::npos);
 

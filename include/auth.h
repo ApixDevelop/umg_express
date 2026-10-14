@@ -386,8 +386,8 @@ inline bool actualizarUsuario(const char* filepath,
         return false;
     }
 
-    if (id == 1 && rol != "Administrador") {
-        errorMsg = "El usuario administrador principal no puede perder el rol Administrador";
+    if (std::string(actual.username) == "admin" && rol != "Administrador") {
+        errorMsg = "El usuario administrador principal ('admin') no puede perder el rol Administrador";
         return false;
     }
 
@@ -420,18 +420,18 @@ inline bool actualizarUsuario(const char* filepath,
 
 // Realiza la baja lógica (activo = false) de un usuario
 inline bool eliminarUsuario(const char* filepath, int id, int idUsuarioSesion, std::string& errorMsg) {
-    if (id == 1) {
+    Usuario actual;
+    if (!obtenerUsuarioPorId(filepath, id, actual)) {
+        errorMsg = "Usuario con ID " + std::to_string(id) + " no encontrado o ya inactivo";
+        return false;
+    }
+
+    if (std::string(actual.username) == "admin") {
         errorMsg = "No se puede eliminar al usuario administrador principal del sistema";
         return false;
     }
     if (id == idUsuarioSesion) {
         errorMsg = "No puede eliminar su propia cuenta de usuario en sesión";
-        return false;
-    }
-
-    Usuario actual;
-    if (!obtenerUsuarioPorId(filepath, id, actual)) {
-        errorMsg = "Usuario con ID " + std::to_string(id) + " no encontrado o ya inactivo";
         return false;
     }
 
