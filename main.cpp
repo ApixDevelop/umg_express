@@ -32,10 +32,29 @@ void inicializarPersistencia() {
     std::cout << "[PERSISTENCIA] Archivos .dat e infraestructura inicializada." << std::endl;
 }
 
+struct CORSMiddleware {
+    struct context {};
+    void before_handle(crow::request& req, crow::response& res, context& /*ctx*/) {
+        if (req.method == crow::HTTPMethod::OPTIONS) {
+            res.add_header("Access-Control-Allow-Origin", "*");
+            res.add_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            res.add_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+            res.code = 204;
+            res.end();
+        }
+    }
+    template <typename AllContext>
+    void after_handle(crow::request& /*req*/, crow::response& res, context& /*ctx*/, AllContext& /*all_ctx*/) {
+        res.add_header("Access-Control-Allow-Origin", "*");
+        res.add_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        res.add_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+    }
+};
+
 int main() {
     inicializarPersistencia();
 
-    crow::SimpleApp app;
+    crow::App<CORSMiddleware> app;
 
     // -------------------------------------------------------------------------
     // Ruta de bienvenida / estado general
@@ -1866,8 +1885,26 @@ int main() {
         return crow::response(200, res);
     });
 
-    std::cout << "Servidor UMG Express escuchando en puerto 18080..." << std::endl;
-    app.bindaddr("127.0.0.1").port(18080).multithreaded().run();
+    const char* envHost = std::getenv("HOST");
+    std::string host = (envHost && envHost[0] != '\0') ? envHost : "0.0.0.0";
+
+    const char* envPort = std::getenv("PORT");
+    int port = 18080;
+    if (envPort && envPort[0] != '\0') {
+        try {
+            int p = std::stoi(envPort);
+            if (p > 0 && p <= 65535) {
+                port = p;
+            } else {
+                std::cerr << "[ADVERTENCIA] Variable PORT fuera de rango (1-65535): " << envPort << ". Usando 18080 por defecto." << std::endl;
+            }
+        } catch (...) {
+            std::cerr << "[ADVERTENCIA] Error al parsear variable PORT (" << envPort << "). Usando 18080 por defecto." << std::endl;
+        }
+    }
+
+    std::cout << "Servidor UMG Express escuchando en " << host << ":" << port << "..." << std::endl;
+    app.bindaddr(host).port(port).multithreaded().run();
 
     return 0;
 }
