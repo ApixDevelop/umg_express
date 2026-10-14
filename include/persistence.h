@@ -5,12 +5,27 @@
 #include <vector>
 #include <cstring>
 #include <iostream>
+#include <filesystem>
 #include "structs.h"
 
 namespace Persistence {
 
+// Garantiza que el directorio padre exista antes de crear el archivo
+inline bool asegurarDirectorioPadre(const char* filepath) {
+    try {
+        std::filesystem::path p(filepath);
+        if (p.has_parent_path()) {
+            std::filesystem::create_directories(p.parent_path());
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
 // Garantiza que el archivo exista (lo crea si no existe)
 inline bool asegurarArchivo(const char* filepath) {
+    asegurarDirectorioPadre(filepath);
     FILE* f = fopen(filepath, "a+b");
     if (f) {
         fclose(f);

@@ -547,9 +547,11 @@ inline void inicializarUsuarioAdminPorDefecto(const char* filepath = DEFAULT_FIL
     Persistence::asegurarArchivo(filepath);
     std::vector<Usuario> lista = Persistence::leerTodos<Usuario>(filepath, true);
     if (lista.empty()) {
+        const char* envAdminPass = std::getenv("ADMIN_DEFAULT_PASSWORD");
+        std::string adminPass = (envAdminPass && envAdminPass[0] != '\0') ? envAdminPass : "admin123";
         Usuario outU;
         std::string err;
-        registrarUsuario(filepath, "admin", "admin123", "Administrador Inicial", "Administrador", outU, err);
+        registrarUsuario(filepath, "admin", adminPass, "Administrador Inicial", "Administrador", outU, err);
         std::cout << "[AUTH] Usuario por defecto 'admin' inicializado exitosamente." << std::endl;
     }
 }
