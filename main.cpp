@@ -1231,6 +1231,92 @@ int main() {
         return crow::response(201, res);
     });
 
+    // Actualizar estado de una guía (ej. "Entregada", "Despachada", "Creada")
+    CROW_ROUTE(app, "/v1/transacciones/guias/<int>").methods(crow::HTTPMethod::PUT, crow::HTTPMethod::PATCH)([](const crow::request& req, int numeroGuia) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
+        crow::json::wvalue res;
+        std::string nuevoEstado = "Entregada";
+        if (!req.body.empty()) {
+            auto body = crow::json::load(req.body);
+            if (body && body.has("estado")) {
+                nuevoEstado = std::string(body["estado"].s());
+            }
+        }
+
+        Guia gActualizada;
+        std::string errorMsg;
+        if (!Guias::actualizarEstadoGuia(Guias::DEFAULT_FILE_GUIAS, numeroGuia, nuevoEstado, gActualizada, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            int code = (errorMsg.find("no encontrada") != std::string::npos) ? 404 : 400;
+            return crow::response(code, res);
+        }
+
+        crow::json::wvalue gJson;
+        gJson["numeroGuia"] = gActualizada.numeroGuia;
+        gJson["idClienteRemitente"] = gActualizada.idClienteRemitente;
+        gJson["idClienteDestinatario"] = gActualizada.idClienteDestinatario;
+        gJson["idRuta"] = gActualizada.idRuta;
+        gJson["pesoRealKg"] = gActualizada.pesoRealKg;
+        gJson["largoCm"] = gActualizada.largoCm;
+        gJson["anchoCm"] = gActualizada.anchoCm;
+        gJson["altoCm"] = gActualizada.altoCm;
+        gJson["pesoVolumetricoKg"] = gActualizada.pesoVolumetricoKg;
+        gJson["pesoFacturableKg"] = gActualizada.pesoFacturableKg;
+        gJson["costoTotal"] = gActualizada.costoTotal;
+        gJson["estado"] = std::string(gActualizada.estado);
+
+        res["success"] = true;
+        res["mensaje"] = "Estado de guía actualizado exitosamente a '" + nuevoEstado + "'";
+        res["guia"] = std::move(gJson);
+        return crow::response(200, res);
+    });
+
+    // Acción directa: Marcar guía como Entregada
+    CROW_ROUTE(app, "/v1/transacciones/guias/<int>/entregar").methods(crow::HTTPMethod::POST)([](const crow::request& req, int numeroGuia) {
+        auto authRes = Auth::validarAcceso(req, {"Administrador", "Operador"});
+        if (!authRes.autorizado) {
+            crow::json::wvalue errRes;
+            errRes["success"] = false;
+            errRes["mensaje"] = authRes.error;
+            return crow::response(authRes.codigoHttp, errRes);
+        }
+        crow::json::wvalue res;
+        Guia gActualizada;
+        std::string errorMsg;
+        if (!Guias::actualizarEstadoGuia(Guias::DEFAULT_FILE_GUIAS, numeroGuia, "Entregada", gActualizada, errorMsg)) {
+            res["success"] = false;
+            res["mensaje"] = errorMsg;
+            int code = (errorMsg.find("no encontrada") != std::string::npos) ? 404 : 400;
+            return crow::response(code, res);
+        }
+
+        crow::json::wvalue gJson;
+        gJson["numeroGuia"] = gActualizada.numeroGuia;
+        gJson["idClienteRemitente"] = gActualizada.idClienteRemitente;
+        gJson["idClienteDestinatario"] = gActualizada.idClienteDestinatario;
+        gJson["idRuta"] = gActualizada.idRuta;
+        gJson["pesoRealKg"] = gActualizada.pesoRealKg;
+        gJson["largoCm"] = gActualizada.largoCm;
+        gJson["anchoCm"] = gActualizada.anchoCm;
+        gJson["altoCm"] = gActualizada.altoCm;
+        gJson["pesoVolumetricoKg"] = gActualizada.pesoVolumetricoKg;
+        gJson["pesoFacturableKg"] = gActualizada.pesoFacturableKg;
+        gJson["costoTotal"] = gActualizada.costoTotal;
+        gJson["estado"] = std::string(gActualizada.estado);
+
+        res["success"] = true;
+        res["mensaje"] = "Guía marcada como entregada exitosamente";
+        res["guia"] = std::move(gJson);
+        return crow::response(200, res);
+    });
+
     // -------------------------------------------------------------------------
     // MÓDULO: TRANSACCIONES / DESPACHO (/v1/transacciones/despacho)
     // -------------------------------------------------------------------------
