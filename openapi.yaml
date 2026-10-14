@@ -1192,6 +1192,117 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Transacciones - Guías
+      summary: Actualizar estado de una guía (ej. Entregada, Despachada, Creada)
+      operationId: updateGuiaEstado
+      parameters:
+        - name: numeroGuia
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1001
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estado:
+                  type: string
+                  enum: [Creada, Despachada, Entregada]
+                  example: Entregada
+      responses:
+        '200':
+          description: Estado de guía actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Estado de guía actualizado exitosamente a 'Entregada'
+                  guia:
+                    $ref: '#/components/schemas/Guia'
+        '400':
+          description: Estado no válido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permisos insuficientes (requiere Administrador u Operador)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Guía no encontrada o inactiva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/transacciones/guias/{numeroGuia}/entregar:
+    post:
+      tags:
+        - Transacciones - Guías
+      summary: Marcar guía como entregada directamente
+      operationId: marcarGuiaEntregada
+      parameters:
+        - name: numeroGuia
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1001
+      responses:
+        '200':
+          description: Guía marcada como entregada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mensaje:
+                    type: string
+                    example: Guía marcada como entregada exitosamente
+                  guia:
+                    $ref: '#/components/schemas/Guia'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permisos insuficientes (requiere Administrador u Operador)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Guía no encontrada o inactiva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /v1/transacciones/despacho:
     get:
