@@ -22,9 +22,21 @@ Valida las credenciales de usuario.
 - **Response `200 OK`**: `{ "success": true, "mensaje": "Autenticación exitosa", "usuario": { ... } }`
 
 ### POST `/v1/auth/usuarios`
-Registra un nuevo usuario en `data/usuarios.dat`.
+Registra un nuevo usuario en `data/usuarios.dat` (rol `Administrador`).
 - **Request Body**: `{ "username": "operador1", "password": "pass", "nombre": "Carlos Gómez", "rol": "Operador" }`
 - **Response `201 Created`**: `{ "success": true, "mensaje": "Usuario creado exitosamente", ... }`
+
+### GET `/v1/auth/usuarios` | GET `/v1/auth/usuarios/{id}`
+Lista todos los usuarios activos o busca un usuario por ID (rol `Administrador`).
+- **Response `200 OK`**: `{ "success": true, "usuarios": [ ... ] }` / `{ "success": true, "usuario": { ... } }`
+
+### PUT `/v1/auth/usuarios/{id}`
+Actualiza username, nombre, rol y contraseña opcional (rol `Administrador`).
+- **Response `200 OK`**: `{ "success": true, "mensaje": "Usuario actualizado exitosamente", "usuario": { ... } }`
+
+### DELETE `/v1/auth/usuarios/{id}`
+Baja lógica del usuario (`activo = false`) protegiendo al `admin` y evitando autoeliminación (rol `Administrador`).
+- **Response `200 OK`**: `{ "success": true, "mensaje": "Usuario eliminado exitosamente" }`
 
 ---
 

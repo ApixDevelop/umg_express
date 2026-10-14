@@ -35,9 +35,10 @@
 ### Fase 3 — Autenticación y Usuarios
 - **Estado**: COMPLETADA
 - **Trabajo Realizado**:
-  - Módulo `include/auth.h` con funciones de autenticación y roles.
-  - Endpoints `POST /v1/auth/login` y `POST /v1/auth/usuarios`.
-  - Suite de pruebas unitarias en `tests/test_auth.cpp`.
+  - Módulo `include/auth.h` con funciones de autenticación, roles y gestión de usuarios.
+  - Endpoints de autenticación: `POST /v1/auth/login`, `POST /v1/auth/logout`, `GET /v1/auth/me`.
+  - Endpoints de gestión completa (CRUD) de usuarios del sistema: `GET /v1/auth/usuarios`, `POST /v1/auth/usuarios`, `GET /v1/auth/usuarios/{id}`, `PUT /v1/auth/usuarios/{id}`, `DELETE /v1/auth/usuarios/{id}` (restringidos a rol `Administrador`).
+  - Suite de pruebas unitarias en `tests/test_auth.cpp` (creación, login, listado, búsqueda, actualización y baja lógica con protecciones de seguridad).
 
 ### Fase 4A — CRUD de Sucursales y Clientes
 - **Estado**: COMPLETADA
