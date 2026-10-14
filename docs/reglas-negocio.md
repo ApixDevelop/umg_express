@@ -143,3 +143,18 @@ El sistema debe permitir consultar la información asociada a una guía.
 Los reportes deben utilizar información almacenada en los archivos `.dat`.
 
 No crear datos ficticios para completar reportes.
+
+---
+
+## 12. Fundamentos de Álgebra Lineal y Geometría Analítica
+
+El sistema integra formulaciones vectoriales y geométricas rigurosas (`include/algebra.h`):
+
+1. **Espacios Vectoriales ($\mathbb{R}^2$ y $\mathbb{R}^3$):** Modelado de vectores de dimensiones de carga $\vec{d} = (largo, ancho, alto)$ y vectores de estado de carga/tarifas.
+2. **Producto Punto:** Cálculo del costo variable del flete mediante el producto escalar entre el vector de carga $\vec{x} = (peso, volumen)$ y el vector de tarifas $\vec{t} = (P_{kg}, P_{m3})$:
+   $$\text{Costo Variable} = \vec{x} \cdot \vec{t} = (p \times P_{kg}) + (v \times P_{m3})$$
+3. **Producto Cruz y Cálculo de Áreas:** Cálculo del área superficial de embalaje a partir de aristas ortogonales:
+   $$\text{Área} = 2 \cdot (\|\vec{u} \times \vec{v}\| + \|\vec{u} \times \vec{w}\| + \|\vec{v} \times \vec{w}\|)$$
+4. **Determinantes y Volúmenes:** Determinante $3 \times 3$ como triple producto escalar para el volumen del paralelepípedo de carga:
+   $$\text{Volumen} = |\det(M)| = |\vec{u} \cdot (\vec{v} \times \vec{w})|$$
+5. **Ecuación Paramétrica y Simétrica de la Recta:** Modelado continuo de rutas de transporte $\vec{r}(t) = \vec{P}_0 + t \cdot \vec{v}$ con $t \in [0, 1]$ y validación de alineación mediante forma simétrica.

@@ -12,13 +12,14 @@
 #include "clientes.h"
 #include "rutas.h"
 #include "tarifas.h"
+#include "algebra.h"
 
 namespace Guias {
 
 const char* const DEFAULT_FILE_GUIAS = "data/guias.dat";
 
 // -----------------------------------------------------------------------------
-// Funciones Matemáticas de Cálculo (Fase 5B)
+// Funciones Matemáticas y Algebraicas de Cálculo (Fase 5B y Álgebra Lineal)
 // -----------------------------------------------------------------------------
 
 // Calcula el peso volumétrico en kg: (largo * ancho * alto) / 5000.0
@@ -32,18 +33,23 @@ inline double calcularPesoFacturable(double pesoRealKg, double pesoVolumetricoKg
     return std::max(pesoRealKg, pesoVolumetricoKg);
 }
 
-// Calcula el volumen en m3: (largo * ancho * alto) / 1,000,000.0
+// Calcula el volumen en m3 mediante geometría vectorial / determinante
 inline double calcularVolumenM3(double largoCm, double anchoCm, double altoCm) {
     if (largoCm <= 0.0 || anchoCm <= 0.0 || altoCm <= 0.0) return 0.0;
-    return (largoCm * anchoCm * altoCm) / 1000000.0;
+    return Algebra::calcularVolumenPaqueteM3(largoCm, anchoCm, altoCm);
 }
 
-// Calcula el costo total del envío considerando tarifa base de ruta y tarifa de carga
+// Calcula el área superficial de embalaje en m2 utilizando producto cruz
+inline double calcularAreaSuperficialM2(double largoCm, double anchoCm, double altoCm) {
+    return Algebra::calcularAreaSuperficialPaqueteM2(largoCm, anchoCm, altoCm);
+}
+
+// Calcula el costo total del envío considerando tarifa base y producto punto vectorial de carga y tarifas
 inline double calcularCostoTotal(double tarifaBaseRuta, double pesoFacturableKg, double volumenM3, const Tarifa* tarifa = nullptr) {
     double costo = tarifaBaseRuta;
     if (tarifa != nullptr && tarifa->activo) {
-        costo += (pesoFacturableKg * tarifa->precioPorKg);
-        costo += (volumenM3 * tarifa->precioPorM3);
+        // Álgebra Lineal: Producto punto entre vector de carga (peso, volumen) y vector de tarifas (precioKg, precioM3)
+        costo += Algebra::calcularCostoVariableVectorial(pesoFacturableKg, volumenM3, tarifa->precioPorKg, tarifa->precioPorM3);
         costo += tarifa->recargoEspecial;
     } else {
         costo += (pesoFacturableKg * 10.0); // Tarifa estándar predeterminada por kg facturable
