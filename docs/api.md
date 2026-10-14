@@ -144,6 +144,115 @@ Authorization: Bearer <access_token>
   }
   ```
 
+### 2.5 Listar Usuarios del Sistema (`GET /v1/auth/usuarios`)
+* **Acceso:** Protegido — **Exclusivo para rol `Administrador`**.  
+* Retorna la lista de todos los usuarios internos activos del sistema (no incluye clientes del catálogo ni expone hashes de contraseñas).
+
+- **Headers:** `Authorization: Bearer <token_admin>`
+- **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "usuarios": [
+      {
+        "id": 1,
+        "username": "admin",
+        "nombre": "Administrador Principal",
+        "rol": "Administrador"
+      },
+      {
+        "id": 2,
+        "username": "operador_central",
+        "nombre": "Carlos Gómez",
+        "rol": "Operador"
+      }
+    ]
+  }
+  ```
+
+### 2.6 Consultar Usuario por ID (`GET /v1/auth/usuarios/{id}`)
+* **Acceso:** Protegido — **Exclusivo para rol `Administrador`**.  
+* Obtiene el detalle de un usuario específico por su ID numérico.
+
+- **Headers:** `Authorization: Bearer <token_admin>`
+- **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "usuario": {
+      "id": 2,
+      "username": "operador_central",
+      "nombre": "Carlos Gómez",
+      "rol": "Operador"
+    }
+  }
+  ```
+- **Response `404 Not Found`:** Si el usuario no existe o se encuentra inactivo.
+  ```json
+  {
+    "success": false,
+    "mensaje": "Usuario con ID 99 no encontrado o inactivo"
+  }
+  ```
+
+### 2.7 Actualizar Usuario (`PUT /v1/auth/usuarios/{id}`)
+* **Acceso:** Protegido — **Exclusivo para rol `Administrador`**.  
+* Permite modificar `username`, `nombre`, `rol` y opcionalmente `password`.
+* Si `password` se omite o se envía vacío, se conserva la contraseña existente sin modificarla.
+* Protecciones de integridad: el usuario `admin` no puede ser degradado a un rol diferente de `Administrador`.
+* El `username` no puede colisionar con el de otro usuario existente.
+
+- **Headers:** `Authorization: Bearer <token_admin>`
+- **Request Body:**
+  ```json
+  {
+    "username": "operador_central",
+    "nombre": "Carlos Gómez Actualizado",
+    "rol": "Operador",
+    "password": "nuevaPassword123"
+  }
+  ```
+- **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "mensaje": "Usuario actualizado exitosamente",
+    "usuario": {
+      "id": 2,
+      "username": "operador_central",
+      "nombre": "Carlos Gómez Actualizado",
+      "rol": "Operador"
+    }
+  }
+  ```
+- **Response `400 Bad Request`:** Si faltan campos requeridos o se intenta degradar al administrador principal.
+- **Response `404 Not Found`:** Si el usuario no existe.
+- **Response `409 Conflict`:** Si el nuevo `username` ya está registrado por otro usuario.
+
+### 2.8 Eliminar Usuario (`DELETE /v1/auth/usuarios/{id}`)
+* **Acceso:** Protegido — **Exclusivo para rol `Administrador`**.  
+* Realiza la **baja lógica** (`activo = false`) del usuario en el archivo binario `data/usuarios.dat`.
+* Reglas de seguridad:
+  1. No se permite eliminar el usuario raíz del sistema (`admin`).
+  2. No se permite la autoeliminación (el administrador en sesión no puede eliminarse a sí mismo).
+
+- **Headers:** `Authorization: Bearer <token_admin>`
+- **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "mensaje": "Usuario eliminado exitosamente"
+  }
+  ```
+- **Response `400 Bad Request`:** En caso de intentar eliminar la cuenta `admin` o al usuario actualmente autenticado:
+  ```json
+  {
+    "success": false,
+    "mensaje": "No es posible eliminar el usuario actual de la sesión activa"
+  }
+  ```
+- **Response `404 Not Found`:** Si el usuario no existe o ya está inactivo.
+
 ---
 
 ## 3. Catálogo de Sucursales (`/v1/sucursales`)
