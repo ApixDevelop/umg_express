@@ -144,3 +144,51 @@ Registra un nuevo usuario en `data/usuarios.dat`.
     "mensaje": "Acceso denegado: el rol 'Operador' no cuenta con permisos suficientes para esta operación"
   }
   ```
+
+### 5.5 GET `/v1/auth/usuarios` (Protegido - Exclusivo Administrador)
+Lista todos los usuarios activos del sistema sin exponer hashes de contraseñas.
+- **Headers:** `Authorization: Bearer <token_admin>`
+- **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "usuarios": [
+      {
+        "id": 1,
+        "username": "admin",
+        "nombre": "Administrador Principal",
+        "rol": "Administrador"
+      }
+    ]
+  }
+  ```
+
+### 5.6 GET `/v1/auth/usuarios/{id}` (Protegido - Exclusivo Administrador)
+Obtiene el detalle de un usuario activo por su ID.
+- **Headers:** `Authorization: Bearer <token_admin>`
+- **Response `200 OK`:** `{ "success": true, "usuario": { ... } }`
+- **Response `404 Not Found`:** `{ "success": false, "mensaje": "Usuario con ID X no encontrado o inactivo" }`
+
+### 5.7 PUT `/v1/auth/usuarios/{id}` (Protegido - Exclusivo Administrador)
+Actualiza los datos de un usuario (username, nombre, rol y contraseña opcional).
+- **Headers:** `Authorization: Bearer <token_admin>`
+- **Request Body:**
+  ```json
+  {
+    "username": "operador_modificado",
+    "nombre": "Carlos Gómez R.",
+    "rol": "Operador",
+    "password": "nuevaClaveOpcional"
+  }
+  ```
+- **Response `200 OK`:** `{ "success": true, "mensaje": "Usuario actualizado exitosamente", "usuario": { ... } }`
+- **Reglas de Integridad:** Se prohíbe degradar al usuario raíz `admin`. No se permite duplicar nombres de usuario existentes.
+
+### 5.8 DELETE `/v1/auth/usuarios/{id}` (Protegido - Exclusivo Administrador)
+Realiza la baja lógica (`activo = false`) de una cuenta de usuario.
+- **Headers:** `Authorization: Bearer <token_admin>`
+- **Response `200 OK`:** `{ "success": true, "mensaje": "Usuario eliminado exitosamente" }`
+- **Reglas de Seguridad:**
+  1. No se permite eliminar el usuario raíz `admin`.
+  2. No se permite que el administrador en sesión se elimine a sí mismo (autoeliminación).
+
