@@ -112,9 +112,10 @@ GET /v1/reportes/liquidacion
    - Mantiene estrictamente el valor numérico registrado en cada `Guia` al momento de su emisión.
    - Evita recálculos con tarifas actuales para preservar la integridad histórica de la cobranza.
 
-2. **Diferenciación con Pagos Efectivamente Confirmados (`cobradoConfirmado`)**:
-   - `cobradoConfirmado` se reporta explícitamente en `0.0`.
-   - **Razón técnica**: El backend de UMG Express no cuenta actualmente con un módulo de recibos o caja registradora de cobros contra entrega. Todos los importes acumulados representan facturación emitida / ingresos previstos y no necesariamente fondos efectivamente cobrados.
+2. **Cobranza Confirmada (`cobradoConfirmado`)**:
+   $$\text{Cobranza Confirmada} = \sum_{\substack{\text{guia.activo} = \text{true} \\ \text{guia.estado} = \text{"Entregada"}}} \text{guia.costoTotal}$$
+   - Suma el importe de todas las guías que han completado su ciclo logístico y han alcanzado el estado `"Entregada"`.
+   - Refleja la cobranza efectivamente cerrada en destino. Las guías en estado `"Creada"` o `"Despachada"` se consideran pendientes de cobro/entrega.
 
 3. **Manejo de Guías Inactivas / Canceladas (`totalGuiasInactivas`)**:
    - Las guías con `activo == false` son contabilizadas en la métrica `totalGuiasInactivas`.
