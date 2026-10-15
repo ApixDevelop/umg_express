@@ -69,9 +69,9 @@ void probarReporteLiquidacion() {
     bool okG2 = Guias::crearGuia(FILE_GUIAS_TEST_6C, FILE_CLIENTES_TEST_6C, FILE_RUTAS_TEST_6C, cRem.id, cDest.id, r1.id, 25.0, 60.0, 50.0, 40.0, g2, err);
     assert(okG2); // Costo: 297.5
 
-    // Cambiar estado de Guía 2 a "Despachada" para probar agrupación de estados
+    // Cambiar estado de Guía 2 a "Entregada" para probar cobranza confirmada y agrupación de estados
     g2.activo = true;
-    std::strncpy(g2.estado, "Despachada", sizeof(g2.estado) - 1);
+    std::strncpy(g2.estado, "Entregada", sizeof(g2.estado) - 1);
     Persistence::actualizarEnIndice<Guia>(FILE_GUIAS_TEST_6C, 1, g2);
 
     // Crear Guía 3 (Cancelada / Inactiva - Q100.00)
@@ -89,10 +89,10 @@ void probarReporteLiquidacion() {
     assert(liq.totalGuiasInactivas == 1);     // 1 guía inactiva
     double importeEsperado = g1.costoTotal + g2.costoTotal; // 142.8 + 297.5 = 440.3
     assert(liq.importeTotalFacturado > (importeEsperado - 0.01) && liq.importeTotalFacturado < (importeEsperado + 0.01));
-    assert(liq.cobradoConfirmado == 0.0); // Confirmado que es 0.0 por falta de módulo de pagos
+    assert(std::abs(liq.cobradoConfirmado - g2.costoTotal) < 0.01); // Cobrado confirmado = solo guías "Entregada"
 
     // Verificar desglose por estado
-    assert(liq.resumenPorEstado.size() == 2); // "Creada" y "Despachada"
+    assert(liq.resumenPorEstado.size() == 2); // "Creada" y "Entregada"
     std::cout << "  -> OK: Liquidación de guías con importes acumulados y desglose de estados verificado (Total Facturado: Q" << liq.importeTotalFacturado << ")." << std::endl;
 
     // -------------------------------------------------------------------------
