@@ -263,7 +263,7 @@ inline bool obtenerReporteLiquidacion(const char* guiasFilepath,
     outDatos.totalGuiasConsideradas = 0;
     outDatos.totalGuiasInactivas = 0;
     outDatos.importeTotalFacturado = 0.0;
-    outDatos.cobradoConfirmado = 0.0; // UMG Express no tiene tabla de pagos; cobradoConfirmado es 0.0
+    outDatos.cobradoConfirmado = 0.0; // Cobranza confirmada (suma de guías en estado "Entregada")
     outDatos.resumenPorEstado.clear();
     outDatos.resumenPorRuta.clear();
     outDatos.resumenPorSucursalOrigen.clear();
@@ -294,6 +294,11 @@ inline bool obtenerReporteLiquidacion(const char* guiasFilepath,
         mapEstados[est].estado = est;
         mapEstados[est].cantidadGuias++;
         mapEstados[est].importeTotal += g.costoTotal;
+
+        // Cobranza confirmada: suma de guías cuyo estado sea estrictamente "Entregada"
+        if (est == "Entregada") {
+            outDatos.cobradoConfirmado += g.costoTotal;
+        }
 
         // 2. Agrupar por Ruta
         mapRutas[g.idRuta].idRuta = g.idRuta;
