@@ -14,6 +14,7 @@
 #include "tarifas.h"
 #include "transacciones.h"
 #include "reportes.h"
+#include "arbol_bst.h"
 
 void inicializarPersistencia() {
     Persistence::asegurarArchivo("data/usuarios.dat");
@@ -1883,6 +1884,134 @@ int main() {
         res["success"] = true;
         res["liquidacion"] = std::move(lJson);
         return crow::response(200, res);
+    });
+
+    // =========================================================================
+    // ENDPOINTS DE MATEMÁTICA DISCRETA: ÁRBOLES BINARIOS DE BÚSQUEDA (BST)
+    // Y ALGORITMOS RECURSIVOS
+    // =========================================================================
+
+    // 1. Métricas y Recorridos del Árbol Binario de Guías
+    CROW_ROUTE(app, "/v1/arbol/guias/metricas").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        crow::json::wvalue res;
+
+        // Construir el árbol a partir del archivo binario
+        Arboles::ArbolBST<Guia> arbol = Arboles::construirArbolGuias("data/guias.dat");
+
+        res["success"] = true;
+        res["tema"] = "Matemática Discreta: Árboles Binarios de Búsqueda y Recursividad";
+        res["totalNodos"] = arbol.totalNodos();
+        res["altura"] = arbol.altura();
+        res["estaVacio"] = arbol.estaVacio();
+
+        // Claves en In-Order (Garantizado orden ascendente por teorema de BST)
+        std::vector<int> inOrder = arbol.obtenerInOrderClaves();
+        std::vector<crow::json::wvalue> inOrderJson;
+        for (int k : inOrder) inOrderJson.push_back(k);
+        res["recorridoInOrder"] = std::move(inOrderJson);
+
+        // Claves en Pre-Order (Raíz -> Izquierda -> Derecha)
+        std::vector<int> preOrder = arbol.obtenerPreOrderClaves();
+        std::vector<crow::json::wvalue> preOrderJson;
+        for (int k : preOrder) preOrderJson.push_back(k);
+        res["recorridoPreOrder"] = std::move(preOrderJson);
+
+        // Claves en Post-Order (Izquierda -> Derecha -> Raíz)
+        std::vector<int> postOrder = arbol.obtenerPostOrderClaves();
+        std::vector<crow::json::wvalue> postOrderJson;
+        for (int k : postOrder) postOrderJson.push_back(k);
+        res["recorridoPostOrder"] = std::move(postOrderJson);
+
+        return crow::response(200, res);
+    });
+
+    // 2. Listado de Guías Ordenadas mediante Recorrido In-Order Recursivo
+    CROW_ROUTE(app, "/v1/arbol/guias/inorder").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        crow::json::wvalue res;
+
+        Arboles::ArbolBST<Guia> arbol = Arboles::construirArbolGuias("data/guias.dat");
+        std::vector<Guia> guiasOrdenadas = arbol.obtenerInOrderDatos();
+
+        std::vector<crow::json::wvalue> listJson;
+        for (const auto& g : guiasOrdenadas) {
+            crow::json::wvalue item;
+            item["numeroGuia"] = g.numeroGuia;
+            item["idClienteRemitente"] = g.idClienteRemitente;
+            item["idClienteDestinatario"] = g.idClienteDestinatario;
+            item["idRuta"] = g.idRuta;
+            item["pesoRealKg"] = g.pesoRealKg;
+            item["pesoFacturableKg"] = g.pesoFacturableKg;
+            item["costoTotal"] = g.costoTotal;
+            item["estado"] = std::string(g.estado);
+            item["activo"] = g.activo;
+            listJson.push_back(std::move(item));
+        }
+
+        res["success"] = true;
+        res["metodoOrdenamiento"] = "Recorrido In-Order Recursivo en Árbol Binario de Búsqueda";
+        res["total"] = static_cast<int>(guiasOrdenadas.size());
+        res["guias"] = std::move(listJson);
+        return crow::response(200, res);
+    });
+
+    // 3. Búsqueda Binaria Recursiva O(log n) en el Árbol
+    CROW_ROUTE(app, "/v1/arbol/guias/buscar/<int>").methods(crow::HTTPMethod::GET)([](const crow::request& req, int numeroGuia) {
+        crow::json::wvalue res;
+
+        if (numeroGuia <= 0) {
+            res["success"] = false;
+            res["error"] = "El número de guía debe ser mayor a 0";
+            return crow::response(400, res);
+        }
+
+        Arboles::ArbolBST<Guia> arbol = Arboles::construirArbolGuias("data/guias.dat");
+
+        Guia encontrada;
+        int comparacionesRealizadas = 0;
+        bool hallado = arbol.buscar(numeroGuia, encontrada, comparacionesRealizadas);
+
+        if (!hallado) {
+            res["success"] = false;
+            res["error"] = "Guía no encontrada en el árbol binario";
+            res["comparacionesRealizadas"] = comparacionesRealizadas;
+            res["complejidad"] = "O(log n)";
+            return crow::response(404, res);
+        }
+
+        crow::json::wvalue gJson;
+        gJson["numeroGuia"] = encontrada.numeroGuia;
+        gJson["idClienteRemitente"] = encontrada.idClienteRemitente;
+        gJson["idClienteDestinatario"] = encontrada.idClienteDestinatario;
+        gJson["idRuta"] = encontrada.idRuta;
+        gJson["pesoRealKg"] = encontrada.pesoRealKg;
+        gJson["pesoVolumetricoKg"] = encontrada.pesoVolumetricoKg;
+        gJson["pesoFacturableKg"] = encontrada.pesoFacturableKg;
+        gJson["costoTotal"] = encontrada.costoTotal;
+        gJson["estado"] = std::string(encontrada.estado);
+
+        res["success"] = true;
+        res["algoritmo"] = "Búsqueda Binaria Recursiva en BST";
+        res["complejidad"] = "O(log n)";
+        res["comparacionesRealizadas"] = comparacionesRealizadas;
+        res["totalNodosArbol"] = arbol.totalNodos();
+        res["alturaArbol"] = arbol.altura();
+        res["guia"] = std::move(gJson);
+
+        return crow::response(200, res);
+    });
+
+    // 4. Estructura Jerárquica del Árbol en JSON (para graficar en frontend)
+    CROW_ROUTE(app, "/v1/arbol/guias/estructura").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        Arboles::ArbolBST<Guia> arbol = Arboles::construirArbolGuias("data/guias.dat");
+        std::string estructuraJson = arbol.exportarEstructuraJSON();
+
+        std::string respuesta = "{\"success\":true,\"totalNodos\":" + std::to_string(arbol.totalNodos()) +
+                                ",\"altura\":" + std::to_string(arbol.altura()) +
+                                ",\"arbol\":" + estructuraJson + "}";
+
+        crow::response res(200, respuesta);
+        res.set_header("Content-Type", "application/json");
+        return res;
     });
 
     const char* envHost = std::getenv("HOST");
