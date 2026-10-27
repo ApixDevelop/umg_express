@@ -25,9 +25,10 @@ RUN curl -sSL https://github.com/CrowCpp/Crow/archive/refs/tags/v1.3.4.tar.gz | 
 
 WORKDIR /app
 
-# Copiar código fuente y encabezados del proyecto
+# Copiar código fuente, encabezados y datos del proyecto
 COPY include/ ./include/
 COPY main.cpp ./
+COPY data/ ./data/
 
 # Compilar binario de producción optimizado (-O2)
 RUN g++ -std=c++17 -O2 -I/usr/local/include -Iinclude main.cpp -o server -lpthread
@@ -50,8 +51,8 @@ WORKDIR /app
 # Copiar el binario optimizado desde la etapa de compilación
 COPY --from=builder /app/server /app/server
 
-# Crear carpeta de persistencia local por defecto (directorio de montaje de volumen)
-RUN mkdir -p /app/data
+# Copiar carpeta de persistencia con datos iniciales del sistema
+COPY --from=builder /app/data /app/data
 
 # Configuración de red y persistencia
 # Railway asigna dinámicamente la variable PORT en el despliegue
