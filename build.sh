@@ -15,8 +15,9 @@ clang++ -std=c++17 -I/usr/local/include -Iinclude tests/test_auth.cpp -o test_au
 clang++ -std=c++17 -I/usr/local/include -Iinclude tests/test_fase1_seguridad.cpp -o test_fase1_seguridad
 clang++ -std=c++17 -I/usr/local/include -Iinclude tests/test_integracion_api.cpp -o test_integracion_api
 clang++ -std=c++17 -I/usr/local/include -Iinclude tests/test_algebra.cpp -o test_algebra
+clang++ -std=c++17 -I/usr/local/include -Iinclude tests/test_arbol_bst.cpp -o test_arbol_bst
 
-echo "=== Compilación exitosa. Ejecutables creados: ./server, ./test_auth, ./test_fase1_seguridad, ./test_calculos, ./test_despacho, ./test_reporte_rastreo, ./test_reporte_manifiesto, ./test_reporte_liquidacion, ./test_integracion_api, ./test_algebra ==="
+echo "=== Compilación exitosa. Ejecutables creados: ./server, ./test_auth, ./test_fase1_seguridad, ./test_calculos, ./test_despacho, ./test_reporte_rastreo, ./test_reporte_manifiesto, ./test_reporte_liquidacion, ./test_integracion_api, ./test_algebra, ./test_arbol_bst ==="
 
 
 

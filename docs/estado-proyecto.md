@@ -196,6 +196,30 @@
 - **Problemas Pendientes**:
   - Ninguno. Listo para autorización de la siguiente fase.
 
+---
+
+## 4. Módulo de Matemática Discreta: Árboles Binarios de Búsqueda (BST) y Recursividad
+
+- **Estado**: COMPLETADO Y VERIFICADO
+- **Trabajo Realizado**:
+  - Módulo de estructura de datos en `include/arbol_bst.h` con punteros y memoria dinámica.
+  - Implementación recursiva pura de algoritmos fundamentales:
+    - Inserción recursiva en BST ($O(\log n)$).
+    - Búsqueda binaria recursiva ($O(\log n)$) con conteo de comparaciones.
+    - Recorrido In-Order recursivo ($O(n)$) que demuestra matemáticamente la ordenación ascendente automática.
+    - Recorridos Pre-Order y Post-Order recursivos.
+    - Cálculo de altura ($1 + \max(h_{izq}, h_{der})$) y cardinalidad de nodos $|V|$.
+    - Liberación de memoria post-order.
+    - Serialización jerárquica a formato JSON.
+  - Endpoints REST en `main.cpp`:
+    - `GET /v1/arbol/guias/metricas`: Altura, total de nodos y recorridos (In-Order, Pre-Order, Post-Order).
+    - `GET /v1/arbol/guias/inorder`: Listado de guías ordenadas mediante recorrido In-Order.
+    - `GET /v1/arbol/guias/buscar/{numeroGuia}`: Búsqueda binaria que reporta comparaciones vs complejidad teórica.
+    - `GET /v1/arbol/guias/estructura`: Estructura JSON anidada para renderizado gráfico en frontend.
+  - Suite de pruebas unitarias en `tests/test_arbol_bst.cpp` (integrada en `build.sh`).
+  - Documentación técnica y matemática en `docs/arbol-binario.md`.
+
+
 
 
 
